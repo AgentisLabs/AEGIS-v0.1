@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ReportCard } from './components/ReportCard';
 
 interface FirmReport {
   name: string;
@@ -66,7 +67,7 @@ export default function FirmSearch() {
 
   return (
     <div className="flex flex-col w-full max-w-4xl py-24 mx-auto stretch">
-      <h1 className="text-3xl font-bold mb-8">Prop Firm Report Card Generator</h1>
+      <h1 className="text-3xl font-bold mb-8 text-white">Prop Firm Report Card Generator</h1>
       
       <form onSubmit={handleSubmit} className="mb-8">
         <input
@@ -90,27 +91,7 @@ export default function FirmSearch() {
         </div>
       )}
 
-      {currentReport && (
-        <div className="mb-8 p-4 border rounded">
-          <h2 className="text-2xl font-bold">{currentReport.name}</h2>
-          <div className="text-xl mb-2">Score: {currentReport.overall_score}/100</div>
-          <div className="mb-4">{currentReport.summary}</div>
-          
-          {currentReport.twitter_sentiment && (
-            <div className="mb-4">
-              <h3 className="font-bold">Twitter Sentiment:</h3>
-              <p>{currentReport.twitter_sentiment.summary}</p>
-            </div>
-          )}
-          
-          <h3 className="font-bold">Sources:</h3>
-          <ul className="list-disc pl-4">
-            {currentReport.sources.map((source, i) => (
-              <li key={i}>{source}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {currentReport && <ReportCard report={currentReport} />}
 
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Leaderboard</h2>

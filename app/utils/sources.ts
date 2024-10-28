@@ -145,7 +145,7 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
       }
     ],
     temperature: 0.7,
-    max_tokens: 1000
+    max_tokens: 10000
   });
 
   try {
@@ -166,8 +166,9 @@ export async function generateFirmScore(data: {
   trustpilot_reviews?: any;
 }) {
   try {
-    // Format tweet data for better analysis
-    const tweetSummary = data.twitter_sentiment?.map(tweet => ({
+    const tweets = Array.isArray(data.twitter_sentiment) ? data.twitter_sentiment : [];
+    
+    const tweetSummary = tweets.map(tweet => ({
       text: tweet.text,
       metrics: tweet.public_metrics,
       created_at: tweet.created_at
@@ -175,23 +176,28 @@ export async function generateFirmScore(data: {
 
     const prompt = `Analyze this prop trading firm data and provide a detailed report card.
       
-      Social Media Presence: ${tweetSummary ? JSON.stringify(tweetSummary) : 'No tweets found'}
-      Number of Tweets: ${tweetSummary?.length || 0}
+      Social Media Presence: ${JSON.stringify(tweetSummary)}
+      Number of Tweets: ${tweetSummary.length}
       PropFirmMatch Info: ${data.prop_firm_info ? JSON.stringify(data.prop_firm_info) : 'No data'}
       Trustpilot Reviews: ${data.trustpilot_reviews ? JSON.stringify(data.trustpilot_reviews) : 'No data'}
       
-      Consider the following in your analysis:
-      1. Tweet engagement metrics (likes, retweets, replies)
-      2. Sentiment of social media discussions
-      3. Presence on professional platforms
-      4. User reviews and feedback`;
+      Provide your response in a JSON format with these exact fields:
+      {
+        "overall_score": (number between 0-100),
+        "summary": (3-4 sentence overview as string),
+        "strengths": [(array of strength strings)],
+        "weaknesses": [(array of weakness strings)],
+        "sources": [(array of source URLs as strings)]
+      }
+      
+      Do not include any markdown formatting or additional text. Return only the JSON object.`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4-1106-preview",
       messages: [
         {
           role: "system",
-          content: "You are a prop firm analyst. You must respond with ONLY a JSON object in this exact format, with no additional text or formatting: { \"overall_score\": <number between 0-100>, \"summary\": \"<3-4 sentence overview>\", \"strengths\": [\"<strength 1>\", \"<strength 2>\"], \"weaknesses\": [\"<weakness 1>\", \"<weakness 2>\"], \"sources\": [\"<source 1>\", \"<source 2>\", \"<source 3>\"] }"
+          content: "You are a prop firm analyst. You must respond with ONLY a valid JSON object containing the analysis results. Do not include any markdown formatting or additional text."
         },
         {
           role: "user",
@@ -199,15 +205,20 @@ export async function generateFirmScore(data: {
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 1000,
+      response_format: { type: "json_object" }
     });
 
+    const responseText = completion.choices[0].message.content.trim();
+    console.log('Raw AI response:', responseText);
+
     try {
-      const result = JSON.parse(completion.choices[0].message.content.trim());
-      console.log('Generated analysis:', result);
+      const result = JSON.parse(responseText);
+      console.log('Parsed result:', result);
       return result;
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
+      console.error('Response text:', responseText);
       return {
         overall_score: 0,
         summary: "Error analyzing firm",
@@ -216,6 +227,7 @@ export async function generateFirmScore(data: {
         sources: []
       };
     }
+
   } catch (error) {
     console.error('Error generating firm score:', error);
     return {
