@@ -1,101 +1,128 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState } from 'react';
+
+interface FirmReport {
+  name: string;
+  overall_score: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  sources: string[];
+  twitter_sentiment?: {
+    sentiment_score: number;
+    summary: string;
+    key_points: string[];
+  };
+}
+
+interface LeaderboardEntry {
+  name: string;
+  score: number;
+}
+
+export default function FirmSearch() {
+  const [firmName, setFirmName] = useState('');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [currentReport, setCurrentReport] = useState<FirmReport | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/analyze-firm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ firmName }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze firm');
+      }
+
+      const data = await response.json();
+      setCurrentReport(data);
+
+      // Update leaderboard
+      setLeaderboard(prev => {
+        const newLeaderboard = [...prev, { name: data.name, score: data.score }];
+        return newLeaderboard.sort((a, b) => b.score - a.score);
+      });
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error:', err);
+    } finally {
+      setIsLoading(false);
+      setFirmName('');
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="flex flex-col w-full max-w-4xl py-24 mx-auto stretch">
+      <h1 className="text-3xl font-bold mb-8">Prop Firm Report Card Generator</h1>
+      
+      <form onSubmit={handleSubmit} className="mb-8">
+        <input
+          className="w-full p-2 border border-gray-300 rounded shadow-xl"
+          value={firmName}
+          placeholder="Enter firm name..."
+          onChange={(e) => setFirmName(e.target.value)}
         />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+        <button 
+          type="submit"
+          disabled={isLoading}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+        >
+          {isLoading ? 'Analyzing...' : 'Analyze Firm'}
+        </button>
+      </form>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">
+          {error}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {currentReport && (
+        <div className="mb-8 p-4 border rounded">
+          <h2 className="text-2xl font-bold">{currentReport.name}</h2>
+          <div className="text-xl mb-2">Score: {currentReport.overall_score}/100</div>
+          <div className="mb-4">{currentReport.summary}</div>
+          
+          {currentReport.twitter_sentiment && (
+            <div className="mb-4">
+              <h3 className="font-bold">Twitter Sentiment:</h3>
+              <p>{currentReport.twitter_sentiment.summary}</p>
+            </div>
+          )}
+          
+          <h3 className="font-bold">Sources:</h3>
+          <ul className="list-disc pl-4">
+            {currentReport.sources.map((source, i) => (
+              <li key={i}>{source}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Leaderboard</h2>
+        <div className="border rounded">
+          {leaderboard.map((entry, i) => (
+            <div key={i} className="p-2 border-b flex justify-between">
+              <span>{entry.name}</span>
+              <span>{entry.score}/100</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
