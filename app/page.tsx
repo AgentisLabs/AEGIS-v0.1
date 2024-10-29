@@ -26,31 +26,56 @@ export default function FirmSearch() {
         body: JSON.stringify({ firmName })
       });
 
-      const data = await response.json();
-      
-      if (!response.ok) throw new Error(data.error);
-      
-      setCurrentReport(data);
-      
-      // Add to leaderboard if we have a valid score
-      if (data && typeof data.overall_score === 'number') {
-        setLeaderboard(prev => {
-          // Remove existing entry if present
-          const filtered = prev.filter(item => item.name.toLowerCase() !== firmName.toLowerCase());
-          // Add new entry
-          const newEntry = {
-            name: firmName,
-            score: data.overall_score
-          };
-          // Add and sort
-          return [...filtered, newEntry]
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10); // Keep top 10
+      if (response.status === 504) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const retryResponse = await fetch('/api/analyze-firm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firmName })
         });
-      }
 
+        const data = await retryResponse.json();
+        if (!retryResponse.ok) throw new Error(data.error || 'Failed to analyze firm');
+        setCurrentReport(data);
+        
+        if (data && typeof data.overall_score === 'number') {
+          setLeaderboard(prev => {
+            const filtered = prev.filter(item => 
+              item.name.toLowerCase() !== firmName.toLowerCase()
+            );
+            const newEntry = {
+              name: firmName,
+              score: data.overall_score
+            };
+            return [...filtered, newEntry]
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 10);
+          });
+        }
+      } else {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to analyze firm');
+        setCurrentReport(data);
+        
+        if (data && typeof data.overall_score === 'number') {
+          setLeaderboard(prev => {
+            const filtered = prev.filter(item => 
+              item.name.toLowerCase() !== firmName.toLowerCase()
+            );
+            const newEntry = {
+              name: firmName,
+              score: data.overall_score
+            };
+            return [...filtered, newEntry]
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 10);
+          });
+        }
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Search error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while analyzing the firm. Please try again.');
     } finally {
       setIsLoading(false);
     }
