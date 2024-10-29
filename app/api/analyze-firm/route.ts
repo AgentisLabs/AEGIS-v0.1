@@ -38,10 +38,22 @@ export async function POST(req: Request) {
 
     // Get IP for analytics
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    await logSearch(firmName, ip);
+    
+    try {
+      await logSearch(firmName, ip);
+    } catch (e) {
+      console.error('Error logging search:', e);
+      // Continue even if logging fails
+    }
     
     // Check cache first
-    const cachedAnalysis = await getFirmAnalysis(firmName);
+    let cachedAnalysis = null;
+    try {
+      cachedAnalysis = await getFirmAnalysis(firmName);
+    } catch (e) {
+      console.error('Error checking cache:', e);
+    }
+
     if (cachedAnalysis) {
       console.log('Returning cached analysis for:', firmName);
       return NextResponse.json(cachedAnalysis);
@@ -49,44 +61,47 @@ export async function POST(req: Request) {
 
     console.log('Performing new analysis for:', firmName);
 
-    // Add type declarations
     let tweets: any[] = [];
     let propFirmInfo: any = null;
     let trustpilotReviews: any[] = [];
     
-    try {
-      tweets = await searchTweets(firmName);
-    } catch (e) {
-      console.error('Twitter search error:', e);
-    }
-
-    try {
-      propFirmInfo = await searchPropFirmInfo(firmName);
-    } catch (e) {
-      console.error('PropFirm search error:', e);
-    }
-
-    try {
-      trustpilotReviews = await searchTrustpilotReviews(firmName);
-    } catch (e) {
-      console.error('Trustpilot search error:', e);
-    }
+    // Perform all searches in parallel
+    await Promise.all([
+      searchTweets(firmName).then(result => { tweets = result; })
+        .catch(e => console.error('Twitter search error:', e)),
+      
+      searchPropFirmInfo(firmName).then(result => { propFirmInfo = result; })
+        .catch(e => console.error('PropFirm search error:', e)),
+      
+      searchTrustpilotReviews(firmName).then(result => { trustpilotReviews = result; })
+        .catch(e => console.error('Trustpilot search error:', e))
+    ]);
 
     const analysis = await generateFirmScore({
-      twitter_sentiment: tweets,
-      prop_firm_info: propFirmInfo,
-      trustpilot_reviews: trustpilotReviews
+      twitter_sentiment: tweets || [],
+      prop_firm_info: propFirmInfo || null,
+      trustpilot_reviews: trustpilotReviews || []
     } satisfies AnalysisData);
 
-    // Save to database
-    const savedAnalysis = await saveFirmAnalysis(firmName, {
-      ...analysis,
-      twitter_data: tweets,
-      propfirm_data: propFirmInfo,
-      trustpilot_data: trustpilotReviews
-    });
-
-    return NextResponse.json(savedAnalysis);
+    try {
+      const savedAnalysis = await saveFirmAnalysis(firmName, {
+        ...analysis,
+        twitter_data: tweets,
+        propfirm_data: propFirmInfo,
+        trustpilot_data: trustpilotReviews
+      });
+      
+      return NextResponse.json(savedAnalysis);
+    } catch (error) {
+      console.error('Error saving analysis:', error);
+      // If saving fails, still return the analysis
+      return NextResponse.json({
+        ...analysis,
+        twitter_data: tweets,
+        propfirm_data: propFirmInfo,
+        trustpilot_data: trustpilotReviews
+      });
+    }
 
   } catch (error) {
     console.error('Analysis error:', error);
