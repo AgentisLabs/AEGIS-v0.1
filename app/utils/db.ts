@@ -13,72 +13,76 @@ type FirmAnalysis = {
 
 export async function getFirmAnalysis(firmName: string) {
   try {
+    if (!firmName) {
+      console.error('No firm name provided');
+      return null;
+    }
+
     const { data, error } = await supabase
-      .from('firm_analysis')
+      .from('firm_analyses')
       .select('*')
       .eq('firm_name', firmName.toLowerCase())
       .single();
 
-    if (error) {
-      console.error('DB read error:', error);
+    // If no data found, return null without throwing error
+    if (error?.code === 'PGRST116') {
       return null;
     }
 
-    return data;
+    if (error) {
+      console.error('Error fetching analysis:', error);
+      return null;
+    }
+
+    const analysis = data as unknown as FirmAnalysis;
+
+    // Check if analysis needs refresh (older than 24h)
+    if (analysis?.last_updated && 
+        new Date(analysis.last_updated) < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
+      console.log('Analysis is outdated, needs refresh');
+      return null;
+    }
+
+    // If found and fresh, increment times_searched
+    if (analysis) {
+      const { error: updateError } = await supabase
+        .from('firm_analyses')
+        .update({ times_searched: (analysis.times_searched || 0) + 1 })
+        .eq('firm_name', firmName.toLowerCase());
+
+      if (updateError) {
+        console.error('Error updating search count:', updateError);
+      }
+    }
+
+    return analysis;
   } catch (error) {
-    console.error('Error getting firm analysis:', error);
+    console.error('Error in getFirmAnalysis:', error);
     return null;
   }
 }
 
-export async function saveFirmAnalysis(firmName: string, analysis: any) {
+export async function saveFirmAnalysis(firmName: string, analysisData: Partial<FirmAnalysis>) {
   try {
-    const { data: existingData, error: checkError } = await supabase
-      .from('firm_analysis')
-      .select('*')
-      .eq('firm_name', firmName.toLowerCase())
+    const { data, error } = await supabase
+      .from('firm_analyses')
+      .upsert({
+        firm_name: firmName.toLowerCase(),
+        ...analysisData,
+        last_updated: new Date().toISOString(),
+        times_searched: 1
+      })
+      .select()
       .single();
 
-    if (existingData) {
-      const { data, error } = await supabase
-        .from('firm_analysis')
-        .update({
-          ...analysis,
-          updated_at: new Date().toISOString()
-        })
-        .eq('firm_name', firmName.toLowerCase())
-        .select()
-        .single();
-
-      if (error) {
-        console.error('DB update error:', error);
-        throw error;
-      }
-
-      return data;
-    } else {
-      const { data, error } = await supabase
-        .from('firm_analysis')
-        .insert([
-          {
-            firm_name: firmName.toLowerCase(),
-            ...analysis,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('DB insert error:', error);
-        throw error;
-      }
-
-      return data;
+    if (error || !data) {
+      console.error('Error saving analysis:', error);
+      throw error;
     }
+
+    return data as unknown as FirmAnalysis;
   } catch (error) {
-    console.error('Error saving firm analysis:', error);
+    console.error('Error in saveFirmAnalysis:', error);
     throw error;
   }
 }
