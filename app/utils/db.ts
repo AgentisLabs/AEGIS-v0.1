@@ -1,49 +1,46 @@
 import { supabase } from '../lib/supabase';
 
-interface FirmAnalysis {
+type FirmAnalysis = {
   firm_name: string;
+  times_searched: number;
+  last_updated: string;
   overall_score: number;
   summary: string;
   strengths: string[];
   weaknesses: string[];
   sources: string[];
-  twitter_data?: any;
-  propfirm_data?: any;
-  trustpilot_data?: any;
-  last_updated: string;
-  times_searched: number;
-  is_in_leaderboard: boolean;
-}
+};
 
-export async function getFirmAnalysis(firmName: string): Promise<FirmAnalysis | null> {
+export async function getFirmAnalysis(firmName: string) {
   try {
-    const { data: analysis, error } = await supabase
+    const { data, error } = await supabase
       .from('firm_analyses')
       .select('*')
       .eq('firm_name', firmName.toLowerCase())
       .single();
 
-    if (error) {
+    if (error || !data) {
       console.error('Error fetching analysis:', error);
       return null;
     }
 
+    const analysis = data as unknown as FirmAnalysis;
+
     // Check if analysis needs refresh (older than 24h)
-    if (analysis && new Date(analysis.last_updated) < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
+    if (analysis.last_updated && 
+        new Date(analysis.last_updated) < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
       console.log('Analysis is outdated, needs refresh');
       return null;
     }
 
     // If found and fresh, increment times_searched
-    if (analysis) {
-      const { error: updateError } = await supabase
-        .from('firm_analyses')
-        .update({ times_searched: analysis.times_searched + 1 })
-        .eq('firm_name', firmName.toLowerCase());
+    const { error: updateError } = await supabase
+      .from('firm_analyses')
+      .update({ times_searched: (analysis.times_searched || 0) + 1 })
+      .eq('firm_name', firmName.toLowerCase());
 
-      if (updateError) {
-        console.error('Error updating search count:', updateError);
-      }
+    if (updateError) {
+      console.error('Error updating search count:', updateError);
     }
 
     return analysis;
@@ -66,15 +63,32 @@ export async function saveFirmAnalysis(firmName: string, analysisData: Partial<F
       .select()
       .single();
 
-    if (error) {
+    if (error || !data) {
       console.error('Error saving analysis:', error);
       throw error;
     }
 
-    return data;
+    return data as unknown as FirmAnalysis;
   } catch (error) {
     console.error('Error in saveFirmAnalysis:', error);
     throw error;
+  }
+}
+
+export async function logSearch(firmName: string, ipAddress?: string) {
+  try {
+    const { error } = await supabase
+      .from('search_history')
+      .insert({
+        firm_name: firmName.toLowerCase(),
+        ip_address: ipAddress
+      });
+
+    if (error) {
+      console.error('Error logging search:', error);
+    }
+  } catch (error) {
+    console.error('Error in logSearch:', error);
   }
 }
 
@@ -95,22 +109,5 @@ export async function getLeaderboard(limit = 10) {
   } catch (error) {
     console.error('Error in getLeaderboard:', error);
     return [];
-  }
-}
-
-export async function logSearch(firmName: string, ipAddress?: string) {
-  try {
-    const { error } = await supabase
-      .from('search_history')
-      .insert({
-        firm_name: firmName.toLowerCase(),
-        ip_address: ipAddress
-      });
-
-    if (error) {
-      console.error('Error logging search:', error);
-    }
-  } catch (error) {
-    console.error('Error in logSearch:', error);
   }
 }

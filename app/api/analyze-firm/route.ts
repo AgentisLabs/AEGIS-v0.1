@@ -5,7 +5,21 @@ import { searchTweets, searchPropFirmInfo, searchTrustpilotReviews, generateFirm
 export async function POST(req: Request) {
   try {
     const { firmName } = await req.json();
-    
+    console.log('Starting analysis for:', firmName);
+
+    // Add logs before each search
+    console.log('Fetching PropFirmMatch data...');
+    const propFirmData = await searchPropFirmInfo(firmName);
+    console.log('PropFirmMatch data:', propFirmData);
+
+    console.log('Fetching Trustpilot data...');
+    const trustpilotData = await searchTrustpilotReviews(firmName);
+    console.log('Trustpilot data:', trustpilotData);
+
+    console.log('Fetching Twitter data...');
+    const tweetData = await searchTweets(firmName);
+    console.log('Tweet data found:', tweetData.length, 'tweets');
+
     if (!firmName) {
       return NextResponse.json(
         { error: 'Firm name is required' },

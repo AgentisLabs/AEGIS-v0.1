@@ -12,7 +12,7 @@ export default function FirmSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [leaderboard, setLeaderboard] = useState<Array<{ name: string; score: number }>>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firmName) return;
 

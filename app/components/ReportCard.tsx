@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, Shield, TrendingUp, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, TrendingUp, Users, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface FirmReport {

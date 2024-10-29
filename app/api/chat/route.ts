@@ -1,6 +1,10 @@
 import { OpenAI } from 'openai';
 import { NextResponse } from 'next/server';
-import { getTwitterSentiment, getPropFirmMatchInfo, getTrustpilotInfo } from '@/app/utils/sources';
+import { 
+  searchTweets, 
+  searchPropFirmInfo, 
+  searchTrustpilotReviews 
+} from '@/app/utils/sources';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,9 +12,9 @@ const openai = new OpenAI({
 
 async function searchCompany(firmName: string) {
   const [tweets, propFirmInfo, trustpilotInfo] = await Promise.all([
-    getTwitterSentiment(firmName),
-    getPropFirmMatchInfo(firmName),
-    getTrustpilotInfo(firmName)
+    searchTweets(firmName),
+    searchPropFirmInfo(firmName),
+    searchTrustpilotReviews(firmName)
   ]);
 
   return {

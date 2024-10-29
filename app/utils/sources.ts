@@ -1,6 +1,7 @@
 import * as ExaJS from 'exa-js';
 import OpenAI from 'openai';
 import { TwitterApi } from 'twitter-api-v2';
+import { SearchResult } from '../types';
 
 const exa = new ExaJS.default(process.env.EXA_API_KEY!);
 const openai = new OpenAI({
@@ -31,20 +32,20 @@ export async function searchTweets(query: string, maxResults = 100) {
     });
 
     // Log a sample of tweets for debugging
-    if (tweets._realData?.data) {
+    if ((tweets as any)._realData?.data) {
       console.log('Sample of first 3 tweets:', 
-        tweets._realData.data.slice(0, 3).map(t => ({
+        (tweets as any)._realData.data.slice(0, 3).map(t => ({
           text: t.text,
           metrics: t.public_metrics
         }))
       );
     }
 
-    return tweets._realData?.data?.map(tweet => ({
+    return (tweets as any)._realData?.data?.map(tweet => ({
       text: tweet.text,
       created_at: tweet.created_at,
       public_metrics: tweet.public_metrics,
-      author: tweets._realData.includes?.users?.find(user => user.id === tweet.author_id)
+      author: (tweets as any)._realData.includes?.users?.find(user => user.id === tweet.author_id)
     })) || [];
 
   } catch (error) {
@@ -53,24 +54,27 @@ export async function searchTweets(query: string, maxResults = 100) {
   }
 }
 
-export async function searchPropFirmInfo(firmName: string) {
+export async function searchPropFirmInfo(firmName: string): Promise<SearchResult[]> {
   try {
-    const result = await exa.search(
+    const result = await exa.searchAndContents(
       firmName,
       {
         type: "keyword",
         category: "company",
         includeDomains: ["propfirmmatch.com"],
-        numResults: 5
+        numResults: 5,
+        subpages: 2,
+        text: true,
+        summary: true
       }
     );
 
     return result.results.map(result => ({
-      title: result.title,
-      url: result.url,
-      summary: result.snippet,
-      text: result.text,
-      highlights: result.highlights
+      title: result.title || '',
+      url: result.url || '',
+      summary: result.summary || result.snippet || '',
+      text: result.text || '',
+      highlights: result.highlights || []
     }));
 
   } catch (error) {
@@ -79,23 +83,26 @@ export async function searchPropFirmInfo(firmName: string) {
   }
 }
 
-export async function searchTrustpilotReviews(firmName: string) {
+export async function searchTrustpilotReviews(firmName: string): Promise<SearchResult[]> {
   try {
-    const result = await exa.search(
+    const result = await exa.searchAndContents(
       `${firmName} reviews`,
       {
         type: "keyword",
         includeDomains: ["trustpilot.com"],
-        numResults: 3
+        numResults: 3,
+        subpages: 1,
+        text: true,
+        summary: true
       }
     );
 
     return result.results.map(result => ({
-      title: result.title,
-      url: result.url,
-      summary: result.snippet,
-      text: result.text,
-      highlights: result.highlights
+      title: result.title || '',
+      url: result.url || '',
+      summary: result.summary || result.snippet || '',
+      text: result.text || '',
+      highlights: result.highlights || []
     }));
 
   } catch (error) {
@@ -143,34 +150,24 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
   return JSON.parse(response.choices[0].message.content);
 }
 
-export async function generateFirmScore(data: {
-  twitter_sentiment?: any;
-  prop_firm_info?: any;
-  trustpilot_reviews?: any;
-}) {
+interface AnalysisData {
+  twitter_sentiment?: TwitterData;
+  prop_firm_info?: SearchResult[];
+  trustpilot_reviews?: SearchResult[];
+}
+
+export async function generateFirmScore(data: AnalysisData) {
   try {
     const prompt = `Generate a comprehensive analysis for this prop trading firm based on:
 
 TWITTER ANALYSIS:
-${JSON.stringify(data.twitter_sentiment, null, 2)}
+${JSON.stringify(data.twitter_sentiment || {}, null, 2)}
 
 PROP FIRM INFO:
-${data.prop_firm_info?.map((info: any) => `
-Title: ${info.title}
-URL: ${info.url}
-Summary: ${info.summary}
-Content: ${info.text?.substring(0, 1000)}
-Key Points: ${info.highlights?.join(', ')}
-`).join('\n---\n') || 'No prop firm data available'}
+${JSON.stringify(data.prop_firm_info || [], null, 2)}
 
 TRUSTPILOT REVIEWS:
-${data.trustpilot_reviews?.map((review: any) => `
-Title: ${review.title}
-URL: ${review.url}
-Summary: ${review.summary}
-Content: ${review.text?.substring(0, 1000)}
-Key Points: ${review.highlights?.join(', ')}
-`).join('\n---\n') || 'No Trustpilot data available'}
+${JSON.stringify(data.trustpilot_reviews || [], null, 2)}
 
 Based on the data above, provide an analysis in this JSON format:
 {
@@ -181,14 +178,12 @@ Based on the data above, provide an analysis in this JSON format:
   "sources": ["<all URLs referenced>"]
 }`;
 
-    console.log('Sending prompt to OpenAI:', prompt);
-
     const completion = await openai.chat.completions.create({
       model: "gpt-4-1106-preview",
       messages: [
         {
           role: "system",
-          content: "You are a prop firm analyst. Respond with ONLY a valid JSON object containing the analysis results."
+          content: "You are a prop firm analyst. Provide detailed analysis in JSON format."
         },
         {
           role: "user",
@@ -200,16 +195,8 @@ Based on the data above, provide an analysis in this JSON format:
       response_format: { type: "json_object" }
     });
 
-    const responseText = completion.choices[0].message.content.trim();
-    console.log('OpenAI Response:', responseText);
-
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parseError);
-      throw new Error('Failed to parse analysis results');
-    }
+    const responseText = completion.choices[0].message.content;
+    return JSON.parse(responseText || '{}');
 
   } catch (error) {
     console.error('Error generating firm score:', error);
@@ -222,7 +209,6 @@ Based on the data above, provide an analysis in this JSON format:
     };
   }
 }
-
 export async function searchPropFirmMatch(query: string) {
   try {
     const urls = [
@@ -299,3 +285,4 @@ export async function searchTrustpilot(query: string) {
     return [];
   }
 }
+
