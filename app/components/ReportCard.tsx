@@ -1,6 +1,7 @@
 'use client';
 
-import { Star, Shield, TrendingUp, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Shield, TrendingUp, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface FirmReport {
@@ -25,6 +26,10 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ report }: ReportCardProps) {
+  const [showSources, setShowSources] = useState(false);
+
+  console.log('Report sources:', report.sources);
+
   const metrics = [
     { icon: Star, label: 'Overall Score', value: report.overall_score },
     { icon: Shield, label: 'Trust', value: report.twitter_sentiment?.sentiment_score || 0 },
@@ -164,6 +169,43 @@ export function ReportCard({ report }: ReportCardProps) {
           </div>
         </motion.div>
       )}
+
+      <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
+        <button
+          onClick={() => setShowSources(!showSources)}
+          className="flex items-center justify-between w-full text-left text-gray-400 hover:text-white transition-colors duration-300"
+        >
+          <span className="text-lg font-semibold">Sources</span>
+          {showSources ? (
+            <ChevronUp className="w-5 h-5" />
+          ) : (
+            <ChevronDown className="w-5 h-5" />
+          )}
+        </button>
+        
+        {showSources && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-4 space-y-2"
+          >
+            {report.sources.map((source, i) => (
+              <motion.a
+                key={i}
+                variants={item}
+                href={source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-cyan-500 hover:text-cyan-400 transition-colors duration-300"
+              >
+                {source}
+              </motion.a>
+            ))}
+          </motion.div>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

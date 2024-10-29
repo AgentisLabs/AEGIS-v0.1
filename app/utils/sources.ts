@@ -58,15 +58,16 @@ export async function searchPropFirmInfo(firmName: string, numResults = 5) {
     console.log('Searching PropFirmMatch for:', firmName);
     const query = `site:propfirmmatch.com "${firmName}"`;
     
-    const searchResults = await exa.search(query, {
+    const searchResults = await exa.searchAndContents(query, {
       numResults,
-      type: "keyword",
-      startPublishedDate: "2023-01-01",
-      summary: true,
-      summaryNumSentences: 3,
-      useAuthorDate: true,
-      highlights: true
+      useAutoprompt: false,  // Disable autoprompt for exact matching
+      text: true,  // Get full text content
+      highlights: true,  // Get relevant excerpts
+      summary: true,  // Get AI-generated summary
+      summaryNumSentences: 3
     });
+    
+    console.log('PropFirmMatch raw results:', searchResults);
     
     if (!searchResults?.results?.length) {
       return null;
@@ -75,9 +76,9 @@ export async function searchPropFirmInfo(firmName: string, numResults = 5) {
     return searchResults.results.map(result => ({
       title: result.title,
       url: result.url,
-      summary: result.summary || result.text?.substring(0, 200),
-      highlights: result.highlights,
-      publishedDate: result.publishedDate
+      summary: result.summary || '',
+      text: result.text || '',  // Full text content
+      highlights: result.highlights || []
     }));
     
   } catch (error) {
@@ -91,15 +92,16 @@ export async function searchTrustpilotReviews(firmName: string, numResults = 3) 
     console.log('Searching Trustpilot for:', firmName);
     const query = `site:trustpilot.com/review "${firmName}"`;
     
-    const searchResults = await exa.search(query, {
+    const searchResults = await exa.searchAndContents(query, {
       numResults,
-      type: "keyword",
-      startPublishedDate: "2023-01-01",
-      summary: true,
-      summaryNumSentences: 3,
-      useAuthorDate: true,
-      highlights: true
+      useAutoprompt: false,  // Disable autoprompt for exact matching
+      text: true,  // Get full text content
+      highlights: true,  // Get relevant excerpts
+      summary: true,  // Get AI-generated summary
+      summaryNumSentences: 3
     });
+    
+    console.log('Trustpilot raw results:', searchResults);
     
     if (!searchResults?.results?.length) {
       return null;
@@ -108,9 +110,9 @@ export async function searchTrustpilotReviews(firmName: string, numResults = 3) 
     return searchResults.results.map(result => ({
       title: result.title,
       url: result.url,
-      summary: result.summary || result.text?.substring(0, 200),
-      highlights: result.highlights,
-      publishedDate: result.publishedDate
+      summary: result.summary || '',
+      text: result.text || '',  // Full text content
+      highlights: result.highlights || []
     }));
     
   } catch (error) {
@@ -129,27 +131,21 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
     messages: [
       {
         role: "system",
-        content: `You are an expert at analyzing prop trading firm sentiment. Analyze these tweets about ${firmName} focusing ONLY on user experiences and feedback.
+        content: `You are an expert at analyzing prop trading firm sentiment on Twitter. 
+        Given a list of tweets about ${firmName}, analyze:
+        1. Overall sentiment (positive, negative, or neutral)
+        2. Common themes or topics mentioned
+        3. Notable praise or complaints
+        4. Level of engagement
         
-        Key areas to analyze:
-        1. Withdrawal experiences (speed, reliability)
-        2. Customer support quality
-        3. Platform stability and technical issues
-        4. Challenge/verification experiences
-        5. Trading conditions (spreads, execution)
-        6. Payment/refund issues
-        7. Specific complaints or praise
-        
-        Ignore metrics like likes, retweets, or follower counts. Focus only on the actual content and experiences shared.
-        
-        Provide your analysis in this exact JSON format:
+        Provide your analysis in this JSON format:
         {
-          "sentiment_score": <number 0-100, based on ratio of positive to negative experiences>,
-          "summary": "<2-3 sentence overview focusing on most common user experiences>",
-          "key_positives": ["<list of specific positive experiences mentioned>"],
-          "key_negatives": ["<list of specific complaints or issues mentioned>"],
-          "recurring_issues": ["<list of frequently mentioned problems>"],
-          "notable_feedback": "<any standout positive or negative experiences worth highlighting>"
+          "sentiment": "positive|negative|neutral",
+          "summary": "<2-3 sentence overview>",
+          "common_themes": ["<list of recurring topics>"],
+          "notable_praise": ["<specific positive feedback>"],
+          "notable_complaints": ["<specific negative feedback>"],
+          "engagement_level": "high|medium|low"
         }`
       },
       {
@@ -158,16 +154,10 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
       }
     ],
     temperature: 0.7,
-    max_tokens: 1000,
     response_format: { type: "json_object" }
   });
 
-  try {
-    return JSON.parse(response.choices[0].message.content);
-  } catch (error) {
-    console.error('Failed to parse sentiment analysis:', error);
-    return null;
-  }
+  return JSON.parse(response.choices[0].message.content);
 }
 
 export async function generateFirmScore(data: {
@@ -176,44 +166,36 @@ export async function generateFirmScore(data: {
   trustpilot_reviews?: any;
 }) {
   try {
-    // Sanitize and format the data
-    const sanitizedData = {
-      twitter: data.twitter_sentiment ? {
-        summary: data.twitter_sentiment.summary || '',
-        positives: Array.isArray(data.twitter_sentiment.key_positives) ? 
-          data.twitter_sentiment.key_positives : [],
-        negatives: Array.isArray(data.twitter_sentiment.key_negatives) ? 
-          data.twitter_sentiment.key_negatives : [],
-        recurring_issues: Array.isArray(data.twitter_sentiment.recurring_issues) ? 
-          data.twitter_sentiment.recurring_issues : []
-      } : null,
-      propfirm: data.prop_firm_info ? data.prop_firm_info.map((item: any) => ({
-        title: item.title || '',
-        summary: item.summary || '',
-        url: item.url || ''
-      })) : [],
-      trustpilot: data.trustpilot_reviews ? data.trustpilot_reviews.map((item: any) => ({
-        title: item.title || '',
-        summary: item.summary || '',
-        url: item.url || ''
-      })) : []
-    };
+    const prompt = `Generate a comprehensive analysis for this prop trading firm based on:
 
-    const prompt = `Analyze this prop trading firm data and provide a report card.
+TWITTER ANALYSIS:
+${JSON.stringify(data.twitter_sentiment, null, 2)}
 
-Twitter Analysis: ${sanitizedData.twitter ? JSON.stringify(sanitizedData.twitter) : 'No Twitter data available'}
+PROP FIRM INFO:
+${data.prop_firm_info?.map((info: any) => `
+Title: ${info.title}
+URL: ${info.url}
+Summary: ${info.summary}
+Content: ${info.text?.substring(0, 1000)}
+Key Points: ${info.highlights?.join(', ')}
+`).join('\n---\n') || 'No prop firm data available'}
 
-PropFirmMatch Reviews: ${sanitizedData.propfirm.length ? JSON.stringify(sanitizedData.propfirm) : 'No PropFirmMatch data available'}
+TRUSTPILOT REVIEWS:
+${data.trustpilot_reviews?.map((review: any) => `
+Title: ${review.title}
+URL: ${review.url}
+Summary: ${review.summary}
+Content: ${review.text?.substring(0, 1000)}
+Key Points: ${review.highlights?.join(', ')}
+`).join('\n---\n') || 'No Trustpilot data available'}
 
-Trustpilot Reviews: ${sanitizedData.trustpilot.length ? JSON.stringify(sanitizedData.trustpilot) : 'No Trustpilot data available'}
-
-Provide a JSON response with these exact fields:
+Provide a detailed analysis in this JSON format:
 {
-  "overall_score": <number between 0-100>,
-  "summary": "<3-4 sentence overview of user experiences>",
+  "overall_score": <number 0-100>,
+  "summary": "<comprehensive overview>",
   "strengths": ["<specific positive aspects>"],
   "weaknesses": ["<specific negative aspects>"],
-  "sources": ["<relevant URLs from the data>"]
+  "sources": ["<all URLs referenced>"]
 }`;
 
     console.log('Sending prompt to OpenAI:', prompt);
@@ -255,5 +237,82 @@ Provide a JSON response with these exact fields:
       weaknesses: [],
       sources: []
     };
+  }
+}
+
+export async function searchPropFirmMatch(query: string) {
+  try {
+    const urls = [
+      `https://www.propfirmmatch.com/prop-firms/${query.toLowerCase()}`,
+      `https://www.propfirmmatch.com/blog/${query.toLowerCase()}-review-2023-proprietary-trading-and-beyond`
+    ];
+
+    const results = await Promise.all(urls.map(async (url) => {
+      try {
+        const response = await fetch(url);
+        const html = await response.text();
+        
+        // Use regex or a parser like cheerio to extract content
+        const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
+        const contentMatch = html.match(/<article[^>]*>(.*?)<\/article>/is);
+        
+        return {
+          title: titleMatch ? titleMatch[1] : '',
+          summary: contentMatch ? 
+            contentMatch[1]
+              .replace(/<[^>]*>/g, '') // Remove HTML tags
+              .replace(/\s+/g, ' ')    // Normalize whitespace
+              .trim()
+              .slice(0, 1000)          // Limit length
+            : '',
+          url: url
+        };
+      } catch (error) {
+        console.error(`Error fetching ${url}:`, error);
+        return null;
+      }
+    }));
+
+    return results.filter(result => result !== null);
+  } catch (error) {
+    console.error('PropFirmMatch search error:', error);
+    return [];
+  }
+}
+
+export async function searchTrustpilot(query: string) {
+  try {
+    const url = `https://www.trustpilot.com/review/${query.toLowerCase()}.com`;
+    const response = await fetch(url);
+    const html = await response.text();
+
+    // Extract reviews
+    const reviewsMatch = html.match(/<div class="review-content">(.*?)<\/div>/gs);
+    const reviews = reviewsMatch ? reviewsMatch.map(review => {
+      const textMatch = review.match(/<p[^>]*>(.*?)<\/p>/s);
+      const ratingMatch = review.match(/data-rating="(\d)"/);
+      
+      return {
+        text: textMatch ? 
+          textMatch[1]
+            .replace(/<[^>]*>/g, '')
+            .trim() 
+          : '',
+        rating: ratingMatch ? parseInt(ratingMatch[1]) : 0
+      };
+    }) : [];
+
+    return [{
+      title: `Trustpilot Reviews for ${query}`,
+      summary: `Average rating: ${
+        reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length
+      }. Recent reviews: ${
+        reviews.slice(0, 3).map(rev => rev.text).join(' | ')
+      }`,
+      url: url
+    }];
+  } catch (error) {
+    console.error('Trustpilot search error:', error);
+    return [];
   }
 }
