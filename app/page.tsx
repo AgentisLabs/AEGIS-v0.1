@@ -63,7 +63,11 @@ export default function FirmSearch() {
 
   return (
     <div className="flex flex-col w-full max-w-4xl py-24 mx-auto stretch">
-      <h1 className="text-3xl font-bold mb-8 text-white">Prop Firm Report Card Generator</h1>
+      <div className="flex flex-col items-center mb-8">
+        <h1 className="text-3xl font-bold text-white">
+          Prop-View 🔍
+        </h1>
+      </div>
       
       <form onSubmit={handleSubmit} className="mb-8">
         <SearchBar 

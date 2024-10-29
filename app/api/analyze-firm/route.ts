@@ -1,87 +1,58 @@
 import { NextResponse } from 'next/server';
-import { 
-  searchTweets, 
-  searchPropFirmInfo, 
-  searchTrustpilotReviews,
-  generateFirmScore
-} from '@/app/utils/sources';
+import { getFirmAnalysis, saveFirmAnalysis, logSearch } from '@/app/utils/db';
+import { searchTweets, searchPropFirmInfo, searchTrustpilotReviews, generateFirmScore } from '@/app/utils/sources';
 
 export async function POST(req: Request) {
   try {
     const { firmName } = await req.json();
     
-    if (!firmName || typeof firmName !== 'string') {
+    if (!firmName) {
       return NextResponse.json(
-        { error: 'Invalid firm name provided' },
+        { error: 'Firm name is required' },
         { status: 400 }
       );
     }
 
-    console.log('Starting analysis for:', firmName);
-
-    // Try each API call separately to identify which one fails
-    let tweets = [];
-    try {
-      tweets = await searchTweets(firmName);
-      console.log('Twitter search completed:', tweets.length, 'tweets found');
-    } catch (error) {
-      console.error('Twitter search failed:', error);
-    }
-
-    let propFirmInfo = null;
-    try {
-      propFirmInfo = await searchPropFirmInfo(firmName);
-      console.log('PropFirmMatch search completed:', !!propFirmInfo);
-    } catch (error) {
-      console.error('PropFirmMatch search failed:', error);
-    }
-
-    let trustpilotReviews = null;
-    try {
-      trustpilotReviews = await searchTrustpilotReviews(firmName);
-      console.log('Trustpilot search completed:', !!trustpilotReviews);
-    } catch (error) {
-      console.error('Trustpilot search failed:', error);
-    }
-
-    // Generate the analysis
-    let analysis = null;
-    try {
-      analysis = await generateFirmScore({
-        twitter_sentiment: tweets,
-        prop_firm_info: propFirmInfo,
-        trustpilot_reviews: trustpilotReviews
-      });
-      console.log('Analysis generated:', analysis);
-    } catch (error) {
-      console.error('Analysis generation failed:', error);
-    }
-
-    // Create the report card with the analysis results
-    const reportCard = {
-      name: firmName,
-      overall_score: analysis?.overall_score || 0,
-      summary: analysis?.summary || "Analysis completed with available data",
-      strengths: analysis?.strengths || [],
-      weaknesses: analysis?.weaknesses || [],
-      sources: analysis?.sources || [],
-      raw_data: {
-        tweets,
-        propFirmInfo,
-        trustpilotReviews
-      }
-    };
-
-    console.log('Analysis completed successfully');
-    return NextResponse.json(reportCard);
+    // Get IP for analytics
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
     
+    // Log the search
+    await logSearch(firmName, ip);
+    
+    // Check cache
+    const cachedAnalysis = await getFirmAnalysis(firmName);
+    if (cachedAnalysis) {
+      console.log('Returning cached analysis for:', firmName);
+      return NextResponse.json(cachedAnalysis);
+    }
+
+    console.log('Performing new analysis for:', firmName);
+
+    // Perform new analysis
+    const tweets = await searchTweets(firmName);
+    const propFirmInfo = await searchPropFirmInfo(firmName);
+    const trustpilotReviews = await searchTrustpilotReviews(firmName);
+
+    const analysis = await generateFirmScore({
+      twitter_sentiment: tweets,
+      prop_firm_info: propFirmInfo,
+      trustpilot_reviews: trustpilotReviews
+    });
+
+    // Save to database
+    const savedAnalysis = await saveFirmAnalysis(firmName, {
+      ...analysis,
+      twitter_data: tweets,
+      propfirm_data: propFirmInfo,
+      trustpilot_data: trustpilotReviews
+    });
+
+    return NextResponse.json(savedAnalysis);
+
   } catch (error) {
-    console.error('Route handler error:', error);
+    console.error('Analysis error:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to analyze firm',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to analyze firm' },
       { status: 500 }
     );
   }

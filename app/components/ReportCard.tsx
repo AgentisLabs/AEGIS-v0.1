@@ -11,6 +11,7 @@ interface FirmReport {
   strengths: string[];
   weaknesses: string[];
   sources: string[];
+  times_searched: number;
   twitter_sentiment?: {
     sentiment_score: number;
     summary: string;
@@ -32,7 +33,7 @@ export function ReportCard({ report }: ReportCardProps) {
 
   const metrics = [
     { icon: Star, label: 'Overall Score', value: report.overall_score },
-    { icon: Shield, label: 'Trust', value: report.twitter_sentiment?.sentiment_score || 0 },
+    { icon: Users, label: 'Searches', value: report.times_searched },
     { icon: TrendingUp, label: 'Strengths', value: report.strengths.length },
     { icon: Users, label: 'Sources', value: report.sources.length },
   ];

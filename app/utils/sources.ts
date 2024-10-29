@@ -53,71 +53,54 @@ export async function searchTweets(query: string, maxResults = 100) {
   }
 }
 
-export async function searchPropFirmInfo(firmName: string, numResults = 5) {
+export async function searchPropFirmInfo(firmName: string) {
   try {
-    console.log('Searching PropFirmMatch for:', firmName);
-    const query = `site:propfirmmatch.com "${firmName}"`;
-    
-    const searchResults = await exa.searchAndContents(query, {
-      numResults,
-      useAutoprompt: false,  // Disable autoprompt for exact matching
-      text: true,  // Get full text content
-      highlights: true,  // Get relevant excerpts
-      summary: true,  // Get AI-generated summary
-      summaryNumSentences: 3
-    });
-    
-    console.log('PropFirmMatch raw results:', searchResults);
-    
-    if (!searchResults?.results?.length) {
-      return null;
-    }
+    const result = await exa.search(
+      firmName,
+      {
+        type: "keyword",
+        category: "company",
+        includeDomains: ["propfirmmatch.com"],
+        numResults: 5
+      }
+    );
 
-    return searchResults.results.map(result => ({
+    return result.results.map(result => ({
       title: result.title,
       url: result.url,
-      summary: result.summary || '',
-      text: result.text || '',  // Full text content
-      highlights: result.highlights || []
+      summary: result.snippet,
+      text: result.text,
+      highlights: result.highlights
     }));
-    
+
   } catch (error) {
-    console.error('PropFirmMatch search error:', error);
-    return null;
+    console.error('Error searching prop firm info:', error);
+    return [];
   }
 }
 
-export async function searchTrustpilotReviews(firmName: string, numResults = 3) {
+export async function searchTrustpilotReviews(firmName: string) {
   try {
-    console.log('Searching Trustpilot for:', firmName);
-    const query = `site:trustpilot.com/review "${firmName}"`;
-    
-    const searchResults = await exa.searchAndContents(query, {
-      numResults,
-      useAutoprompt: false,  // Disable autoprompt for exact matching
-      text: true,  // Get full text content
-      highlights: true,  // Get relevant excerpts
-      summary: true,  // Get AI-generated summary
-      summaryNumSentences: 3
-    });
-    
-    console.log('Trustpilot raw results:', searchResults);
-    
-    if (!searchResults?.results?.length) {
-      return null;
-    }
+    const result = await exa.search(
+      `${firmName} reviews`,
+      {
+        type: "keyword",
+        includeDomains: ["trustpilot.com"],
+        numResults: 3
+      }
+    );
 
-    return searchResults.results.map(result => ({
+    return result.results.map(result => ({
       title: result.title,
       url: result.url,
-      summary: result.summary || '',
-      text: result.text || '',  // Full text content
-      highlights: result.highlights || []
+      summary: result.snippet,
+      text: result.text,
+      highlights: result.highlights
     }));
-    
+
   } catch (error) {
-    console.error('Trustpilot search error:', error);
-    return null;
+    console.error('Error searching Trustpilot reviews:', error);
+    return [];
   }
 }
 
@@ -189,7 +172,7 @@ Content: ${review.text?.substring(0, 1000)}
 Key Points: ${review.highlights?.join(', ')}
 `).join('\n---\n') || 'No Trustpilot data available'}
 
-Provide a detailed analysis in this JSON format:
+Based on the data above, provide an analysis in this JSON format:
 {
   "overall_score": <number 0-100>,
   "summary": "<comprehensive overview>",
