@@ -19,6 +19,20 @@ const twitterClient = new TwitterApi({
 // Create a read-only client using bearer token
 const twitter = new TwitterApi(process.env.TWITTER_BEARER_TOKEN!);
 
+interface Tweet {
+  text: string;
+  public_metrics?: {
+    retweet_count: number;
+    reply_count: number;
+    like_count: number;
+    quote_count: number;
+    bookmark_count: number;
+    impression_count: number;
+  };
+  created_at?: string;
+  author_id?: string;
+}
+
 export async function searchTweets(query: string, maxResults = 100) {
   try {
     const formattedQuery = `${query} -from:${query} lang:en -is:retweet`;
@@ -34,18 +48,18 @@ export async function searchTweets(query: string, maxResults = 100) {
     // Log a sample of tweets for debugging
     if ((tweets as any)._realData?.data) {
       console.log('Sample of first 3 tweets:', 
-        (tweets as any)._realData.data.slice(0, 3).map(t => ({
+        (tweets as any)._realData.data.slice(0, 3).map((t: Tweet) => ({
           text: t.text,
           metrics: t.public_metrics
         }))
       );
     }
 
-    return (tweets as any)._realData?.data?.map(tweet => ({
+    return (tweets as any)._realData?.data?.map((tweet: Tweet) => ({
       text: tweet.text,
       created_at: tweet.created_at,
       public_metrics: tweet.public_metrics,
-      author: (tweets as any)._realData.includes?.users?.find(user => user.id === tweet.author_id)
+      author: (tweets as any)._realData.includes?.users?.find((user: any) => user.id === tweet.author_id)
     })) || [];
 
   } catch (error) {
@@ -72,9 +86,9 @@ export async function searchPropFirmInfo(firmName: string): Promise<SearchResult
     return result.results.map(result => ({
       title: result.title || '',
       url: result.url || '',
-      summary: result.summary || result.snippet || '',
+      summary: result.summary || '',
       text: result.text || '',
-      highlights: result.highlights || []
+      highlights: []
     }));
 
   } catch (error) {
@@ -100,9 +114,9 @@ export async function searchTrustpilotReviews(firmName: string): Promise<SearchR
     return result.results.map(result => ({
       title: result.title || '',
       url: result.url || '',
-      summary: result.summary || result.snippet || '',
+      summary: result.summary || '',
       text: result.text || '',
-      highlights: result.highlights || []
+      highlights: []
     }));
 
   } catch (error) {
@@ -147,7 +161,21 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
     response_format: { type: "json_object" }
   });
 
-  return JSON.parse(response.choices[0].message.content);
+  const content = response.choices[0].message.content;
+  if (!content) {
+    return null;
+  }
+
+  return JSON.parse(content);
+}
+
+interface TwitterData {
+  sentiment: string;
+  summary: string;
+  common_themes: string[];
+  notable_praise: string[];
+  notable_complaints: string[];
+  engagement_level: string;
 }
 
 interface AnalysisData {
@@ -223,7 +251,7 @@ export async function searchPropFirmMatch(query: string) {
         
         // Use regex or a parser like cheerio to extract content
         const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
-        const contentMatch = html.match(/<article[^>]*>(.*?)<\/article>/is);
+        const contentMatch = html.match(/<article[^>]*>([^]*?)<\/article>/i);
         
         return {
           title: titleMatch ? titleMatch[1] : '',
@@ -256,10 +284,10 @@ export async function searchTrustpilot(query: string) {
     const html = await response.text();
 
     // Extract reviews
-    const reviewsMatch = html.match(/<div class="review-content">(.*?)<\/div>/gs);
-    const reviews = reviewsMatch ? reviewsMatch.map(review => {
-      const textMatch = review.match(/<p[^>]*>(.*?)<\/p>/s);
-      const ratingMatch = review.match(/data-rating="(\d)"/);
+    const reviewsMatch = html.match(/<div class="review-content">([^]*?)<\/div>/i);
+    const reviews = reviewsMatch ? [reviewsMatch[0]].map(review => {
+      const textMatch = (review as string).match(/<p[^>]*>([^]*?)<\/p>/i);
+      const ratingMatch = (review as string).match(/data-rating="(\d)"/);
       
       return {
         text: textMatch ? 
@@ -274,7 +302,7 @@ export async function searchTrustpilot(query: string) {
     return [{
       title: `Trustpilot Reviews for ${query}`,
       summary: `Average rating: ${
-        reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length
+        reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length || 0
       }. Recent reviews: ${
         reviews.slice(0, 3).map(rev => rev.text).join(' | ')
       }`,
