@@ -7,19 +7,6 @@ export async function POST(req: Request) {
     const { firmName } = await req.json();
     console.log('Starting analysis for:', firmName);
 
-    // Add logs before each search
-    console.log('Fetching PropFirmMatch data...');
-    const propFirmData = await searchPropFirmInfo(firmName);
-    console.log('PropFirmMatch data:', propFirmData);
-
-    console.log('Fetching Trustpilot data...');
-    const trustpilotData = await searchTrustpilotReviews(firmName);
-    console.log('Trustpilot data:', trustpilotData);
-
-    console.log('Fetching Twitter data...');
-    const tweetData = await searchTweets(firmName);
-    console.log('Tweet data found:', tweetData.length, 'tweets');
-
     if (!firmName) {
       return NextResponse.json(
         { error: 'Firm name is required' },
@@ -29,11 +16,9 @@ export async function POST(req: Request) {
 
     // Get IP for analytics
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    
-    // Log the search
     await logSearch(firmName, ip);
     
-    // Check cache
+    // Check cache first
     const cachedAnalysis = await getFirmAnalysis(firmName);
     if (cachedAnalysis) {
       console.log('Returning cached analysis for:', firmName);
@@ -42,10 +27,26 @@ export async function POST(req: Request) {
 
     console.log('Performing new analysis for:', firmName);
 
-    // Perform new analysis
-    const tweets = await searchTweets(firmName);
-    const propFirmInfo = await searchPropFirmInfo(firmName);
-    const trustpilotReviews = await searchTrustpilotReviews(firmName);
+    // Perform all searches with error handling
+    let tweets = [], propFirmInfo = null, trustpilotReviews = [];
+    
+    try {
+      tweets = await searchTweets(firmName);
+    } catch (e) {
+      console.error('Twitter search error:', e);
+    }
+
+    try {
+      propFirmInfo = await searchPropFirmInfo(firmName);
+    } catch (e) {
+      console.error('PropFirm search error:', e);
+    }
+
+    try {
+      trustpilotReviews = await searchTrustpilotReviews(firmName);
+    } catch (e) {
+      console.error('Trustpilot search error:', e);
+    }
 
     const analysis = await generateFirmScore({
       twitter_sentiment: tweets,

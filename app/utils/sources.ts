@@ -70,17 +70,26 @@ export async function searchTweets(query: string, maxResults = 100) {
 
 export async function searchPropFirmInfo(firmName: string): Promise<SearchResult[]> {
   try {
+    console.log(`Searching PropFirmMatch for: ${firmName}`);
     const result = await exa.searchAndContents(
       firmName,
       {
         type: "keyword",
         category: "company",
         includeDomains: ["propfirmmatch.com"],
-        numResults: 5,
+        numResults: 1,
         subpages: 2,
         text: true,
         summary: true
       }
+    );
+
+    console.log('PropFirmMatch results:', 
+      result.results.slice(0, 2).map(r => ({
+        title: r.title,
+        url: r.url,
+        summary: r.summary?.slice(0, 200) + '...' // First 200 chars of summary
+      }))
     );
 
     return result.results.map(result => ({
@@ -99,16 +108,25 @@ export async function searchPropFirmInfo(firmName: string): Promise<SearchResult
 
 export async function searchTrustpilotReviews(firmName: string): Promise<SearchResult[]> {
   try {
+    console.log(`Searching Trustpilot for: ${firmName}`);
     const result = await exa.searchAndContents(
       `${firmName} reviews`,
       {
         type: "keyword",
         includeDomains: ["trustpilot.com"],
-        numResults: 3,
+        numResults: 1,
         subpages: 1,
         text: true,
         summary: true
       }
+    );
+
+    console.log('Trustpilot results:', 
+      result.results.slice(0, 2).map(r => ({
+        title: r.title,
+        url: r.url,
+        summary: r.summary?.slice(0, 200) + '...' // First 200 chars of summary
+      }))
     );
 
     return result.results.map(result => ({
