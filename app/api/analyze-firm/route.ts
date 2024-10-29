@@ -41,15 +41,16 @@ export async function POST(req: Request) {
     
     try {
       await logSearch(firmName, ip);
+      console.log('Search logged successfully');
     } catch (e) {
       console.error('Error logging search:', e);
-      // Continue even if logging fails
     }
     
     // Check cache first
     let cachedAnalysis = null;
     try {
       cachedAnalysis = await getFirmAnalysis(firmName);
+      console.log('Cache check result:', cachedAnalysis ? 'Found in cache' : 'Not in cache');
     } catch (e) {
       console.error('Error checking cache:', e);
     }
@@ -65,23 +66,40 @@ export async function POST(req: Request) {
     let propFirmInfo: any = null;
     let trustpilotReviews: any[] = [];
     
-    // Perform all searches in parallel
-    await Promise.all([
-      searchTweets(firmName).then(result => { tweets = result; })
-        .catch(e => console.error('Twitter search error:', e)),
-      
-      searchPropFirmInfo(firmName).then(result => { propFirmInfo = result; })
-        .catch(e => console.error('PropFirm search error:', e)),
-      
-      searchTrustpilotReviews(firmName).then(result => { trustpilotReviews = result; })
-        .catch(e => console.error('Trustpilot search error:', e))
-    ]);
+    // Perform searches sequentially instead of in parallel for better error tracking
+    try {
+      console.log('Starting Twitter search...');
+      tweets = await searchTweets(firmName);
+      console.log('Twitter search complete, tweets found:', tweets.length);
+    } catch (e) {
+      console.error('Twitter search error:', e);
+    }
 
+    try {
+      console.log('Starting PropFirm search...');
+      propFirmInfo = await searchPropFirmInfo(firmName);
+      console.log('PropFirm search complete');
+    } catch (e) {
+      console.error('PropFirm search error:', e);
+    }
+
+    try {
+      console.log('Starting Trustpilot search...');
+      trustpilotReviews = await searchTrustpilotReviews(firmName);
+      console.log('Trustpilot search complete');
+    } catch (e) {
+      console.error('Trustpilot search error:', e);
+    }
+
+    console.log('All searches complete, generating score...');
+    
     const analysis = await generateFirmScore({
-      twitter_sentiment: tweets || [],
-      prop_firm_info: propFirmInfo || null,
-      trustpilot_reviews: trustpilotReviews || []
+      twitter_sentiment: tweets,
+      prop_firm_info: propFirmInfo,
+      trustpilot_reviews: trustpilotReviews
     } satisfies AnalysisData);
+
+    console.log('Score generated, saving to database...');
 
     try {
       const savedAnalysis = await saveFirmAnalysis(firmName, {
@@ -91,6 +109,7 @@ export async function POST(req: Request) {
         trustpilot_data: trustpilotReviews
       });
       
+      console.log('Analysis saved successfully');
       return NextResponse.json(savedAnalysis);
     } catch (error) {
       console.error('Error saving analysis:', error);
@@ -104,7 +123,7 @@ export async function POST(req: Request) {
     }
 
   } catch (error) {
-    console.error('Analysis error:', error);
+    console.error('Fatal analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to analyze firm' },
       { status: 500 }
