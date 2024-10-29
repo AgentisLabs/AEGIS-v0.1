@@ -7,43 +7,48 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!
 });
 
+// Initialize the Twitter client with all credentials
+const twitterClient = new TwitterApi({
+  appKey: process.env.TWITTER_API_KEY!,
+  appSecret: process.env.TWITTER_API_SECRET!,
+  accessToken: process.env.TWITTER_ACCESS_TOKEN!,
+  accessSecret: process.env.TWITTER_ACCESS_SECRET!,
+});
+
+// Create a read-only client using bearer token
 const twitter = new TwitterApi(process.env.TWITTER_BEARER_TOKEN!);
 
 export async function searchTweets(query: string, maxResults = 100) {
   try {
-    const formattedQuery = query.replace(/"/g, '').trim();
+    const formattedQuery = `${query} -from:${query} lang:en -is:retweet`;
     console.log('Searching Twitter with query:', formattedQuery);
-    
+
     const tweets = await twitter.v2.search(formattedQuery, {
-      max_results: Math.min(maxResults, 100),
-      expansions: ['author_id'],
-      'tweet.fields': ['created_at', 'public_metrics', 'text'],
-      'user.fields': ['username', 'name', 'description']
+      max_results: maxResults,
+      'tweet.fields': 'created_at,public_metrics,author_id',
+      'user.fields': 'name,username,description',
+      'expansions': 'author_id'
     });
 
-    // Extract tweets from the paginator response
+    // Log a sample of tweets for debugging
     if (tweets._realData?.data) {
-      const formattedTweets = tweets._realData.data.map(tweet => ({
-        text: tweet.text,
-        created_at: tweet.created_at,
-        public_metrics: tweet.public_metrics,
-        author: tweets._realData.includes?.users?.find(user => user.id === tweet.author_id)
-      }));
-
-      console.log('Number of tweets found:', formattedTweets.length);
-      return formattedTweets;
+      console.log('Sample of first 3 tweets:', 
+        tweets._realData.data.slice(0, 3).map(t => ({
+          text: t.text,
+          metrics: t.public_metrics
+        }))
+      );
     }
 
-    console.log('No tweets found or invalid response structure');
-    return [];
+    return tweets._realData?.data?.map(tweet => ({
+      text: tweet.text,
+      created_at: tweet.created_at,
+      public_metrics: tweet.public_metrics,
+      author: tweets._realData.includes?.users?.find(user => user.id === tweet.author_id)
+    })) || [];
 
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Twitter API error:', error.message);
-      console.error('Error details:', error);
-    } else {
-      console.error('Unexpected error:', error);
-    }
+    console.error('Twitter API Error:', error);
     return [];
   }
 }
@@ -115,7 +120,7 @@ export async function searchTrustpilotReviews(firmName: string, numResults = 3) 
 }
 
 export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
-  if (!tweets.length) return "No social media presence found.";
+  if (!tweets.length) return null;
 
   const tweetTexts = tweets.map(tweet => tweet.text).join('\n\n');
   
@@ -124,19 +129,27 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
     messages: [
       {
         role: "system",
-        content: `You are an agent that analyzes Twitter sentiment for proprietary trading firms.
-        Given a list of tweets about a specific firm, analyze the overall sentiment and provide a summary.
-        Consider the following:
-        1. Overall sentiment (positive, negative, or neutral)
-        2. Common themes or topics mentioned
-        3. Any notable praise or complaints
-        4. Level of engagement (replies, retweets, likes)
+        content: `You are an expert at analyzing prop trading firm sentiment. Analyze these tweets about ${firmName} focusing ONLY on user experiences and feedback.
+        
+        Key areas to analyze:
+        1. Withdrawal experiences (speed, reliability)
+        2. Customer support quality
+        3. Platform stability and technical issues
+        4. Challenge/verification experiences
+        5. Trading conditions (spreads, execution)
+        6. Payment/refund issues
+        7. Specific complaints or praise
+        
+        Ignore metrics like likes, retweets, or follower counts. Focus only on the actual content and experiences shared.
         
         Provide your analysis in this exact JSON format:
         {
-          "sentiment_score": <number 0-100>,
-          "summary": "<2-3 sentence overview>",
-          "key_points": ["<point 1>", "<point 2>", "<point 3>"]
+          "sentiment_score": <number 0-100, based on ratio of positive to negative experiences>,
+          "summary": "<2-3 sentence overview focusing on most common user experiences>",
+          "key_positives": ["<list of specific positive experiences mentioned>"],
+          "key_negatives": ["<list of specific complaints or issues mentioned>"],
+          "recurring_issues": ["<list of frequently mentioned problems>"],
+          "notable_feedback": "<any standout positive or negative experiences worth highlighting>"
         }`
       },
       {
@@ -145,59 +158,72 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
       }
     ],
     temperature: 0.7,
-    max_tokens: 10000
+    max_tokens: 1000,
+    response_format: { type: "json_object" }
   });
 
   try {
-    return JSON.parse(response.choices[0].message.content.trim());
+    return JSON.parse(response.choices[0].message.content);
   } catch (error) {
     console.error('Failed to parse sentiment analysis:', error);
-    return {
-      sentiment_score: 0,
-      summary: "Error analyzing tweets",
-      key_points: []
-    };
+    return null;
   }
 }
 
 export async function generateFirmScore(data: {
-  twitter_sentiment?: any[];
+  twitter_sentiment?: any;
   prop_firm_info?: any;
   trustpilot_reviews?: any;
 }) {
   try {
-    const tweets = Array.isArray(data.twitter_sentiment) ? data.twitter_sentiment : [];
-    
-    const tweetSummary = tweets.map(tweet => ({
-      text: tweet.text,
-      metrics: tweet.public_metrics,
-      created_at: tweet.created_at
-    }));
+    // Sanitize and format the data
+    const sanitizedData = {
+      twitter: data.twitter_sentiment ? {
+        summary: data.twitter_sentiment.summary || '',
+        positives: Array.isArray(data.twitter_sentiment.key_positives) ? 
+          data.twitter_sentiment.key_positives : [],
+        negatives: Array.isArray(data.twitter_sentiment.key_negatives) ? 
+          data.twitter_sentiment.key_negatives : [],
+        recurring_issues: Array.isArray(data.twitter_sentiment.recurring_issues) ? 
+          data.twitter_sentiment.recurring_issues : []
+      } : null,
+      propfirm: data.prop_firm_info ? data.prop_firm_info.map((item: any) => ({
+        title: item.title || '',
+        summary: item.summary || '',
+        url: item.url || ''
+      })) : [],
+      trustpilot: data.trustpilot_reviews ? data.trustpilot_reviews.map((item: any) => ({
+        title: item.title || '',
+        summary: item.summary || '',
+        url: item.url || ''
+      })) : []
+    };
 
-    const prompt = `Analyze this prop trading firm data and provide a detailed report card.
-      
-      Social Media Presence: ${JSON.stringify(tweetSummary)}
-      Number of Tweets: ${tweetSummary.length}
-      PropFirmMatch Info: ${data.prop_firm_info ? JSON.stringify(data.prop_firm_info) : 'No data'}
-      Trustpilot Reviews: ${data.trustpilot_reviews ? JSON.stringify(data.trustpilot_reviews) : 'No data'}
-      
-      Provide your response in a JSON format with these exact fields:
-      {
-        "overall_score": (number between 0-100),
-        "summary": (3-4 sentence overview as string),
-        "strengths": [(array of strength strings)],
-        "weaknesses": [(array of weakness strings)],
-        "sources": [(array of source URLs as strings)]
-      }
-      
-      Do not include any markdown formatting or additional text. Return only the JSON object.`;
+    const prompt = `Analyze this prop trading firm data and provide a report card.
+
+Twitter Analysis: ${sanitizedData.twitter ? JSON.stringify(sanitizedData.twitter) : 'No Twitter data available'}
+
+PropFirmMatch Reviews: ${sanitizedData.propfirm.length ? JSON.stringify(sanitizedData.propfirm) : 'No PropFirmMatch data available'}
+
+Trustpilot Reviews: ${sanitizedData.trustpilot.length ? JSON.stringify(sanitizedData.trustpilot) : 'No Trustpilot data available'}
+
+Provide a JSON response with these exact fields:
+{
+  "overall_score": <number between 0-100>,
+  "summary": "<3-4 sentence overview of user experiences>",
+  "strengths": ["<specific positive aspects>"],
+  "weaknesses": ["<specific negative aspects>"],
+  "sources": ["<relevant URLs from the data>"]
+}`;
+
+    console.log('Sending prompt to OpenAI:', prompt);
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4-1106-preview",
       messages: [
         {
           role: "system",
-          content: "You are a prop firm analyst. You must respond with ONLY a valid JSON object containing the analysis results. Do not include any markdown formatting or additional text."
+          content: "You are a prop firm analyst. Respond with ONLY a valid JSON object containing the analysis results."
         },
         {
           role: "user",
@@ -210,22 +236,14 @@ export async function generateFirmScore(data: {
     });
 
     const responseText = completion.choices[0].message.content.trim();
-    console.log('Raw AI response:', responseText);
+    console.log('OpenAI Response:', responseText);
 
     try {
       const result = JSON.parse(responseText);
-      console.log('Parsed result:', result);
       return result;
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      console.error('Response text:', responseText);
-      return {
-        overall_score: 0,
-        summary: "Error analyzing firm",
-        strengths: [],
-        weaknesses: [],
-        sources: []
-      };
+      console.error('Failed to parse OpenAI response:', parseError);
+      throw new Error('Failed to parse analysis results');
     }
 
   } catch (error) {

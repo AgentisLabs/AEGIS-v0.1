@@ -13,7 +13,10 @@ interface FirmReport {
   twitter_sentiment?: {
     sentiment_score: number;
     summary: string;
-    key_points: string[];
+    key_themes: string[];
+    positive_points: string[];
+    concerns: string[];
+    recent_developments: string;
   };
 }
 
@@ -124,6 +127,43 @@ export function ReportCard({ report }: ReportCardProps) {
           </div>
         </div>
       </motion.div>
+
+      {report.twitter_sentiment && (
+        <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
+          <h3 className="text-xl font-semibold mb-4">Social Media Sentiment</h3>
+          <p className="text-gray-300 mb-4">{report.twitter_sentiment.summary}</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="text-lg font-semibold mb-3 text-blue-500">Key Themes</h4>
+              <div className="space-y-2">
+                {report.twitter_sentiment.key_themes.map((theme, i) => (
+                  <motion.div
+                    key={i}
+                    variants={item}
+                    className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-blue-500/50 transition-colors duration-300"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-gray-300">{theme}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+            
+            {report.twitter_sentiment.recent_developments && (
+              <div>
+                <h4 className="text-lg font-semibold mb-3 text-purple-500">Recent Developments</h4>
+                <motion.div
+                  variants={item}
+                  className="bg-gray-800/30 p-4 rounded-lg border border-gray-800"
+                >
+                  <p className="text-gray-300">{report.twitter_sentiment.recent_developments}</p>
+                </motion.div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
