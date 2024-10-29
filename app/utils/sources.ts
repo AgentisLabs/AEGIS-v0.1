@@ -197,9 +197,9 @@ interface TwitterData {
 }
 
 interface AnalysisData {
-  twitter_sentiment?: TwitterData;
-  prop_firm_info?: SearchResult[];
-  trustpilot_reviews?: SearchResult[];
+  twitter_sentiment: any[];
+  prop_firm_info: any;
+  trustpilot_reviews: any[];
 }
 
 export async function generateFirmScore(data: AnalysisData) {

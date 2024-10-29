@@ -2,6 +2,28 @@ import { NextResponse } from 'next/server';
 import { getFirmAnalysis, saveFirmAnalysis, logSearch } from '@/app/utils/db';
 import { searchTweets, searchPropFirmInfo, searchTrustpilotReviews, generateFirmScore } from '@/app/utils/sources';
 
+// Add these type definitions at the top of the file
+interface TwitterData {
+  sentiment: string;
+  summary: string;
+  common_themes: string[];
+  notable_praise: string[];
+  notable_complaints: string[];
+  engagement_level: string;
+}
+
+interface AnalysisInput {
+  twitter_sentiment: any[]; // Keep as any[] for now since we're using raw tweet data
+  prop_firm_info: any;
+  trustpilot_reviews: any[];
+}
+
+interface AnalysisData {
+  twitter_sentiment: any[];
+  prop_firm_info: any;
+  trustpilot_reviews: any[];
+}
+
 export async function POST(req: Request) {
   try {
     const { firmName } = await req.json();
@@ -27,8 +49,10 @@ export async function POST(req: Request) {
 
     console.log('Performing new analysis for:', firmName);
 
-    // Perform all searches with error handling
-    let tweets = [], propFirmInfo = null, trustpilotReviews = [];
+    // Add type declarations
+    let tweets: any[] = [];
+    let propFirmInfo: any = null;
+    let trustpilotReviews: any[] = [];
     
     try {
       tweets = await searchTweets(firmName);
@@ -52,7 +76,7 @@ export async function POST(req: Request) {
       twitter_sentiment: tweets,
       prop_firm_info: propFirmInfo,
       trustpilot_reviews: trustpilotReviews
-    });
+    } satisfies AnalysisData);
 
     // Save to database
     const savedAnalysis = await saveFirmAnalysis(firmName, {
