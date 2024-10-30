@@ -3,6 +3,9 @@ const nextConfig = {
   swcMinify: false,
   experimental: {
     scrollRestoration: true
+  },
+  serverRuntimeConfig: {
+    maxDuration: 300 // 5 minutes in seconds
   }
 };
 
