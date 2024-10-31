@@ -149,7 +149,7 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
   const tweetTexts = tweets.map(tweet => tweet.text).join('\n\n');
   
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
@@ -225,7 +225,7 @@ Based on the data above, provide an analysis in this JSON format:
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
