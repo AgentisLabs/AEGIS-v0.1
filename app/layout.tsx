@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Prop-View - AI Property Analysis",
-  description: "AI-powered property firm analysis tool",
+  title: "Prop-View - Prop Firm Insights",
+  description: "AI-powered proprietary trading firm analysis tool",
 };
 
 export default function RootLayout({

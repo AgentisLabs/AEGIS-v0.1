@@ -40,8 +40,8 @@ export async function POST(req: Request) {
     const forwarded = req.headers.get("x-forwarded-for");
     const ip = forwarded ? forwarded.split(/, /)[0] : null;
     
-    // Log the search and get total count
-    const searchCount = await logSearch(firmName, ip);
+    // Type assertion to handle the null case
+    const searchCount = await logSearch(firmName, ip as string | undefined);
 
     // Check cache first
     let cachedAnalysis = null;

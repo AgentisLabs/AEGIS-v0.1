@@ -152,7 +152,13 @@ export async function getLeaderboard(limit = 10) {
 
 export async function updateLeaderboard(firmName: string, score: number) {
   try {
-    // Get current rank before insert/update
+    // First, remove any existing entry for this firm
+    await supabase
+      .from('leaderboard')
+      .delete()
+      .eq('firm_name', firmName.toLowerCase());
+
+    // Get current rank before insert
     const { data: rankings } = await supabase
       .from('leaderboard')
       .select('overall_score')
@@ -160,9 +166,10 @@ export async function updateLeaderboard(firmName: string, score: number) {
     
     const rank = rankings ? rankings.findIndex(r => r.overall_score <= score) + 1 : 1;
 
+    // Insert new entry
     const { data, error } = await supabase
       .from('leaderboard')
-      .upsert({
+      .insert({
         firm_name: firmName.toLowerCase(),
         overall_score: score,
         rank: rank,
