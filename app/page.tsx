@@ -1,17 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SearchBar } from './components/SearchBar';
 import { ReportCard } from './components/ReportCard';
 import { Leaderboard } from './components/Leaderboard';
+import { getLeaderboard } from './utils/db';
 
 export default function FirmSearch() {
   const [firmName, setFirmName] = useState('');
   const [currentReport, setCurrentReport] = useState(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<Array<{ name: string; score: number }>>([]);
+  const [leaderboard, setLeaderboard] = useState<Array<{
+    firm_name: string;
+    overall_score: number;
+    rank: number;
+  }>>([]);
   const [searchAttempt, setSearchAttempt] = useState(0);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const data = await getLeaderboard();
+        setLeaderboard(data);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+      } finally {
+        setIsLoadingLeaderboard(false);
+      }
+    };
+
+    fetchLeaderboard();
+    // Refresh leaderboard every 5 minutes
+    const interval = setInterval(fetchLeaderboard, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,14 +94,15 @@ export default function FirmSearch() {
       if (data && typeof data.overall_score === 'number') {
         setLeaderboard(prev => {
           const filtered = prev.filter(item => 
-            item.name.toLowerCase() !== firmName.toLowerCase()
+            item.firm_name.toLowerCase() !== firmName.toLowerCase()
           );
           const newEntry = {
-            name: firmName,
-            score: data.overall_score
+            firm_name: firmName,
+            overall_score: data.overall_score,
+            rank: prev.length + 1
           };
           return [...filtered, newEntry]
-            .sort((a, b) => b.score - a.score)
+            .sort((a, b) => b.overall_score - a.overall_score)
             .slice(0, 10);
         });
       }

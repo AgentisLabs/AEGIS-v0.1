@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getFirmAnalysis, saveFirmAnalysis, logSearch } from '@/app/utils/db';
+import { getFirmAnalysis, saveFirmAnalysis, logSearch, updateLeaderboard } from '@/app/utils/db';
 import { searchTweets, searchPropFirmInfo, searchTrustpilotReviews, generateFirmScore } from '@/app/utils/sources';
 
 // Add these type definitions at the top of the file
@@ -36,16 +36,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get IP for analytics
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    // Get IP address from request headers
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded ? forwarded.split(/, /)[0] : null;
     
-    try {
-      await logSearch(firmName, ip);
-      console.log('Search logged successfully');
-    } catch (e) {
-      console.error('Error logging search:', e);
-    }
-    
+    // Log the search and get total count
+    const searchCount = await logSearch(firmName, ip);
+
     // Check cache first
     let cachedAnalysis = null;
     try {
@@ -97,33 +94,36 @@ export async function POST(req: Request) {
       twitter_sentiment: tweets,
       prop_firm_info: propFirmInfo,
       trustpilot_reviews: trustpilotReviews
-    } satisfies AnalysisData);
+    });
 
-    console.log('Score generated, saving to database...');
+    console.log('Analysis generated:', analysis);
 
-    try {
-      const savedAnalysis = await saveFirmAnalysis(firmName, {
-        ...analysis,
-        twitter_data: tweets,
-        propfirm_data: propFirmInfo,
-        trustpilot_data: trustpilotReviews
-      });
-      
-      console.log('Analysis saved successfully');
-      return NextResponse.json(savedAnalysis);
-    } catch (error) {
-      console.error('Error saving analysis:', error);
-      // If saving fails, still return the analysis
-      return NextResponse.json({
-        ...analysis,
-        twitter_data: tweets,
-        propfirm_data: propFirmInfo,
-        trustpilot_data: trustpilotReviews
-      });
+    // Save to firm_analyses
+    await saveFirmAnalysis(firmName, {
+      ...analysis,
+      twitter_data: tweets,
+      propfirm_data: propFirmInfo,
+      trustpilot_data: trustpilotReviews
+    });
+
+    // Also save to leaderboard
+    if (analysis && typeof analysis.overall_score === 'number') {
+      try {
+        await updateLeaderboard(firmName, analysis.overall_score);
+        console.log('Leaderboard updated successfully');
+      } catch (e) {
+        console.error('Error updating leaderboard:', e);
+      }
     }
 
+    // Include search count in response
+    return NextResponse.json({
+      ...analysis,
+      times_searched: searchCount
+    });
+
   } catch (error) {
-    console.error('Fatal analysis error:', error);
+    console.error('Analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to analyze firm' },
       { status: 500 }

@@ -3,8 +3,8 @@ import { Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface LeaderboardEntry {
-  name: string;
-  score: number;
+  firm_name: string;
+  overall_score: number;
 }
 
 interface LeaderboardProps {
@@ -13,7 +13,7 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps) {
-  const sortedFirms = leaderboard ? [...leaderboard].sort((a, b) => b.score - a.score) : [];
+  const sortedFirms = leaderboard ? [...leaderboard].sort((a, b) => b.overall_score - a.overall_score) : [];
 
   const container = {
     hidden: { opacity: 0 },
@@ -54,9 +54,9 @@ export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps)
       >
         {sortedFirms.map((firm, index) => (
           <motion.div
-            key={firm.name}
+            key={firm.firm_name}
             variants={item}
-            onClick={() => onFirmClick?.(firm.name)}
+            onClick={() => onFirmClick?.(firm.firm_name)}
             className={`flex items-center justify-between p-4 border-b border-gray-800 
               last:border-b-0 hover:bg-gray-800/30 transition-colors duration-300
               ${onFirmClick ? 'cursor-pointer' : ''}`}
@@ -71,10 +71,10 @@ export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps)
               >
                 {index + 1}
               </span>
-              <span className="text-gray-300 font-medium">{firm.name}</span>
+              <span className="text-gray-300 font-medium">{firm.firm_name}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-cyan-500 font-bold">{firm.score.toFixed(1)}</span>
+              <span className="text-cyan-500 font-bold">{firm.overall_score.toFixed(1)}</span>
               <span className="text-gray-500">/100</span>
             </div>
           </motion.div>

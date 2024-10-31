@@ -89,26 +89,52 @@ export async function saveFirmAnalysis(firmName: string, analysisData: Partial<F
 
 export async function logSearch(firmName: string, ipAddress?: string) {
   try {
-    const { error } = await supabase
+    // Log to search_history
+    const { error: searchError } = await supabase
       .from('search_history')
       .insert({
         firm_name: firmName.toLowerCase(),
         ip_address: ipAddress
       });
 
-    if (error) {
-      console.error('Error logging search:', error);
+    if (searchError) {
+      console.error('Error logging search:', searchError);
     }
+
+    // Get total search count
+    const { count } = await supabase
+      .from('search_history')
+      .select('*', { count: 'exact', head: true })
+      .eq('firm_name', firmName.toLowerCase());
+
+    // Update times_searched in firm_analyses
+    const { error: updateError } = await supabase
+      .from('firm_analyses')
+      .update({ times_searched: count })
+      .eq('firm_name', firmName.toLowerCase());
+
+    // Update times_searched in leaderboard
+    const { error: leaderboardError } = await supabase
+      .from('leaderboard')
+      .update({ times_searched: count })
+      .eq('firm_name', firmName.toLowerCase());
+
+    if (updateError || leaderboardError) {
+      console.error('Error updating search count:', updateError || leaderboardError);
+    }
+
+    return count || 0;
   } catch (error) {
     console.error('Error in logSearch:', error);
+    return 0;
   }
 }
 
 export async function getLeaderboard(limit = 10) {
   try {
-    const { data: leaderboard, error } = await supabase
-      .from('firm_analyses')
-      .select('firm_name, overall_score, last_updated')
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('*')
       .order('overall_score', { ascending: false })
       .limit(limit);
 
@@ -117,9 +143,41 @@ export async function getLeaderboard(limit = 10) {
       return [];
     }
 
-    return leaderboard;
+    return data;
   } catch (error) {
     console.error('Error in getLeaderboard:', error);
     return [];
+  }
+}
+
+export async function updateLeaderboard(firmName: string, score: number) {
+  try {
+    // Get current rank before insert/update
+    const { data: rankings } = await supabase
+      .from('leaderboard')
+      .select('overall_score')
+      .order('overall_score', { ascending: false });
+    
+    const rank = rankings ? rankings.findIndex(r => r.overall_score <= score) + 1 : 1;
+
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .upsert({
+        firm_name: firmName.toLowerCase(),
+        overall_score: score,
+        rank: rank,
+        last_updated: new Date().toISOString()
+      })
+      .select();
+
+    if (error) {
+      console.error('Error updating leaderboard:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in updateLeaderboard:', error);
+    throw error;
   }
 }
