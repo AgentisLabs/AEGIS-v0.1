@@ -11,17 +11,59 @@ export interface SearchResult {
   highlights: string[];
 }
 
-export interface FirmAnalysis {
-  firm_name: string;
+export interface TokenAnalysis {
+  address: string;
+  symbol: string;
+  name: string;
   overall_score: number;
   summary: string;
   strengths: string[];
   weaknesses: string[];
   sources: string[];
-  twitter_data?: SearchResult[];
-  propfirm_data?: SearchResult[];
-  trustpilot_data?: SearchResult[];
   last_updated: string;
   times_searched: number;
   is_in_leaderboard: boolean;
+  
+  // Market Data
+  market_data?: {
+    price_usd: number;
+    market_cap: number;
+    volume_24h: number;
+    price_change_24h: number;
+    liquidity_usd: number;
+    holder_count: number;
+  };
+
+  // Social Data
+  social_metrics?: {
+    sentiment_score: number;
+    mentions_24h: number;
+    trending_score: number;
+    community_trust: number;
+    key_influencers: string[];
+  };
+
+  // On-chain Data
+  chain_metrics?: {
+    total_holders: number;
+    active_wallets_24h: number;
+    average_transaction: number;
+    whale_concentration: number;
+    creation_date: string;
+  };
+
+  // Analysis Data
+  analysis_data?: {
+    twitter_data?: SearchResult[];
+    gmgn_data?: SearchResult[];
+    dex_data?: SearchResult[];
+  };
+}
+
+export interface TokenMetrics {
+  price: number;
+  volume_24h: number;
+  liquidity: number;
+  holders: number;
+  market_cap: number;
 }

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.70",
+    "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.46.0",
     "ai": "^3.4.23",
     "dotenv": "^16.4.5",

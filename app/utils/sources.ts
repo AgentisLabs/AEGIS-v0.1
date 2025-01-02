@@ -1,6 +1,5 @@
 import * as ExaJS from 'exa-js';
 import OpenAI from 'openai';
-import { TwitterApi } from 'twitter-api-v2';
 import { SearchResult } from '../types';
 
 const exa = new ExaJS.default(process.env.EXA_API_KEY!);
@@ -8,87 +7,59 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!
 });
 
-// Initialize the Twitter client with all credentials
-const twitterClient = new TwitterApi({
-  appKey: process.env.TWITTER_API_KEY!,
-  appSecret: process.env.TWITTER_API_SECRET!,
-  accessToken: process.env.TWITTER_ACCESS_TOKEN!,
-  accessSecret: process.env.TWITTER_ACCESS_SECRET!,
-});
-
-// Create a read-only client using bearer token
-const twitter = new TwitterApi(process.env.TWITTER_BEARER_TOKEN!);
-
-interface Tweet {
-  text: string;
-  public_metrics?: {
-    retweet_count: number;
-    reply_count: number;
-    like_count: number;
-    quote_count: number;
-    bookmark_count: number;
-    impression_count: number;
-  };
-  created_at?: string;
-  author_id?: string;
-}
-
 export async function searchTweets(query: string, maxResults = 100) {
   try {
-    const formattedQuery = `${query} -from:${query} lang:en -is:retweet`;
-    console.log('Searching Twitter with query:', formattedQuery);
-
-    const tweets = await twitter.v2.search(formattedQuery, {
-      max_results: maxResults,
-      'tweet.fields': 'created_at,public_metrics,author_id',
-      'user.fields': 'name,username,description',
-      'expansions': 'author_id'
-    });
-
-    // Log a sample of tweets for debugging
-    if ((tweets as any)._realData?.data) {
-      console.log('Sample of first 3 tweets:', 
-        (tweets as any)._realData.data.slice(0, 3).map((t: Tweet) => ({
-          text: t.text,
-          metrics: t.public_metrics
-        }))
-      );
-    }
-
-    return (tweets as any)._realData?.data?.map((tweet: Tweet) => ({
-      text: tweet.text,
-      created_at: tweet.created_at,
-      public_metrics: tweet.public_metrics,
-      author: (tweets as any)._realData.includes?.users?.find((user: any) => user.id === tweet.author_id)
-    })) || [];
-
-  } catch (error) {
-    console.error('Twitter API Error:', error);
-    return [];
-  }
-}
-
-export async function searchPropFirmInfo(firmName: string): Promise<SearchResult[]> {
-  try {
-    console.log(`Searching PropFirmMatch for: ${firmName}`);
-    const result = await exa.searchAndContents(
-      firmName,
+    console.log('Searching Twitter for token:', query);
+    const results = await exa.searchAndContents(
+      query,
       {
         type: "keyword",
-        category: "company",
-        includeDomains: ["propfirmmatch.com"],
-        numResults: 1,
-        subpages: 2,
+        includeDomains: ["twitter.com"],
+        numResults: maxResults,
         text: true,
         summary: true
       }
     );
 
-    console.log('PropFirmMatch results:', 
+    console.log('Twitter results sample:', 
+      results.results.slice(0, 3).map(r => ({
+        text: r.text?.slice(0, 200) + '...',
+        url: r.url
+      }))
+    );
+
+    return results.results.map(result => ({
+      text: result.text || '',
+      url: result.url || '',
+      summary: result.summary || '',
+      highlights: []
+    }));
+
+  } catch (error) {
+    console.error('Twitter search error:', error);
+    return [];
+  }
+}
+
+export async function searchTokenMarketData(address: string) {
+  try {
+    console.log(`Searching market data for: ${address}`);
+    const result = await exa.searchAndContents(
+      address,
+      {
+        type: "keyword",
+        includeDomains: ["dexscreener.com", "birdeye.so", "solscan.io"],
+        numResults: 5,
+        text: true,
+        summary: true
+      }
+    );
+
+    console.log('Market data results:', 
       result.results.slice(0, 2).map(r => ({
         title: r.title,
         url: r.url,
-        summary: r.summary?.slice(0, 200) + '...' // First 200 chars of summary
+        summary: r.summary?.slice(0, 200) + '...'
       }))
     );
 
@@ -101,31 +72,30 @@ export async function searchPropFirmInfo(firmName: string): Promise<SearchResult
     }));
 
   } catch (error) {
-    console.error('Error searching prop firm info:', error);
+    console.error('Error searching market data:', error);
     return [];
   }
 }
 
-export async function searchTrustpilotReviews(firmName: string): Promise<SearchResult[]> {
+export async function searchTokenInfo(address: string): Promise<SearchResult[]> {
   try {
-    console.log(`Searching Trustpilot for: ${firmName}`);
+    console.log(`Searching token info for: ${address}`);
     const result = await exa.searchAndContents(
-      `${firmName} reviews`,
+      address,
       {
         type: "keyword",
-        includeDomains: ["trustpilot.com"],
-        numResults: 1,
-        subpages: 1,
+        includeDomains: ["gmgn.ai", "rugcheck.xyz"],
+        numResults: 3,
         text: true,
         summary: true
       }
     );
 
-    console.log('Trustpilot results:', 
+    console.log('Token info results:', 
       result.results.slice(0, 2).map(r => ({
         title: r.title,
         url: r.url,
-        summary: r.summary?.slice(0, 200) + '...' // First 200 chars of summary
+        summary: r.summary?.slice(0, 200) + '...'
       }))
     );
 
@@ -138,27 +108,29 @@ export async function searchTrustpilotReviews(firmName: string): Promise<SearchR
     }));
 
   } catch (error) {
-    console.error('Error searching Trustpilot reviews:', error);
+    console.error('Error searching token info:', error);
     return [];
   }
 }
 
-export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
+export async function analyzeTweetSentiment(tweets: any[], tokenAddress: string) {
   if (!tweets.length) return null;
 
   const tweetTexts = tweets.map(tweet => tweet.text).join('\n\n');
   
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     messages: [
       {
         role: "system",
-        content: `You are an expert at analyzing prop trading firm sentiment on Twitter. 
-        Given a list of tweets about ${firmName}, analyze:
+        content: `You are an expert at analyzing Solana token sentiment on Twitter. 
+        Given a list of tweets about token ${tokenAddress}, analyze:
         1. Overall sentiment (positive, negative, or neutral)
         2. Common themes or topics mentioned
-        3. Notable praise or complaints
-        4. Level of engagement
+        3. Notable praise or concerns
+        4. Level of community engagement
+        5. Recent developments or announcements
+        6. Market sentiment indicators
         
         Provide your analysis in this JSON format:
         {
@@ -166,13 +138,14 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
           "summary": "<2-3 sentence overview>",
           "common_themes": ["<list of recurring topics>"],
           "notable_praise": ["<specific positive feedback>"],
-          "notable_complaints": ["<specific negative feedback>"],
-          "engagement_level": "high|medium|low"
+          "notable_concerns": ["<specific negative feedback>"],
+          "engagement_level": "high|medium|low",
+          "market_indicators": ["<relevant trading/price mentions>"]
         }`
       },
       {
         role: "user",
-        content: `Analyze these tweets about ${firmName}:\n\n${tweetTexts}`
+        content: `Analyze these tweets about ${tokenAddress}:\n\n${tweetTexts}`
       }
     ],
     temperature: 0.7,
@@ -187,33 +160,22 @@ export async function analyzeTweetSentiment(tweets: any[], firmName: string) {
   return JSON.parse(content);
 }
 
-interface TwitterData {
-  sentiment: string;
-  summary: string;
-  common_themes: string[];
-  notable_praise: string[];
-  notable_complaints: string[];
-  engagement_level: string;
-}
-
-interface AnalysisData {
+export async function generateTokenScore(data: {
   twitter_sentiment: any[];
-  prop_firm_info: any;
-  trustpilot_reviews: any[];
-}
-
-export async function generateFirmScore(data: AnalysisData) {
+  market_data: SearchResult[];
+  token_info: SearchResult[];
+}) {
   try {
-    const prompt = `Generate a comprehensive analysis for this prop trading firm based on:
+    const prompt = `Generate a comprehensive analysis for this Solana token based on:
 
 TWITTER ANALYSIS:
 ${JSON.stringify(data.twitter_sentiment || {}, null, 2)}
 
-PROP FIRM INFO:
-${JSON.stringify(data.prop_firm_info || [], null, 2)}
+MARKET DATA:
+${JSON.stringify(data.market_data || [], null, 2)}
 
-TRUSTPILOT REVIEWS:
-${JSON.stringify(data.trustpilot_reviews || [], null, 2)}
+TOKEN INFO:
+${JSON.stringify(data.token_info || [], null, 2)}
 
 Based on the data above, provide an analysis in this JSON format:
 {
@@ -221,15 +183,25 @@ Based on the data above, provide an analysis in this JSON format:
   "summary": "<comprehensive overview>",
   "strengths": ["<specific positive aspects>"],
   "weaknesses": ["<specific negative aspects>"],
-  "sources": ["<all URLs referenced>"]
+  "sources": ["<all URLs referenced>"],
+  "market_metrics": {
+    "price_trend": "bullish|bearish|neutral",
+    "liquidity_assessment": "high|medium|low",
+    "trading_volume": "high|medium|low",
+    "holder_distribution": "concentrated|distributed"
+  },
+  "risk_assessment": {
+    "level": "low|medium|high",
+    "factors": ["<specific risk factors>"]
+  }
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a prop firm analyst. Provide detailed analysis in JSON format."
+          content: "You are a Solana token analyst specializing in technical analysis, on-chain metrics, and social sentiment. Provide detailed analysis in JSON format."
         },
         {
           role: "user",
@@ -237,7 +209,6 @@ Based on the data above, provide an analysis in this JSON format:
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
       response_format: { type: "json_object" }
     });
 
@@ -245,90 +216,16 @@ Based on the data above, provide an analysis in this JSON format:
     return JSON.parse(responseText || '{}');
 
   } catch (error) {
-    console.error('Error generating firm score:', error);
+    console.error('Error generating token score:', error);
     return {
       overall_score: 0,
-      summary: "Error analyzing firm",
+      summary: "Error analyzing token",
       strengths: [],
       weaknesses: [],
-      sources: []
+      sources: [],
+      market_metrics: {},
+      risk_assessment: { level: "high", factors: ["Analysis failed"] }
     };
-  }
-}
-export async function searchPropFirmMatch(query: string) {
-  try {
-    const urls = [
-      `https://www.propfirmmatch.com/prop-firms/${query.toLowerCase()}`,
-      `https://www.propfirmmatch.com/blog/${query.toLowerCase()}-review-2023-proprietary-trading-and-beyond`
-    ];
-
-    const results = await Promise.all(urls.map(async (url) => {
-      try {
-        const response = await fetch(url);
-        const html = await response.text();
-        
-        // Use regex or a parser like cheerio to extract content
-        const titleMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/i);
-        const contentMatch = html.match(/<article[^>]*>([^]*?)<\/article>/i);
-        
-        return {
-          title: titleMatch ? titleMatch[1] : '',
-          summary: contentMatch ? 
-            contentMatch[1]
-              .replace(/<[^>]*>/g, '') // Remove HTML tags
-              .replace(/\s+/g, ' ')    // Normalize whitespace
-              .trim()
-              .slice(0, 1000)          // Limit length
-            : '',
-          url: url
-        };
-      } catch (error) {
-        console.error(`Error fetching ${url}:`, error);
-        return null;
-      }
-    }));
-
-    return results.filter(result => result !== null);
-  } catch (error) {
-    console.error('PropFirmMatch search error:', error);
-    return [];
-  }
-}
-
-export async function searchTrustpilot(query: string) {
-  try {
-    const url = `https://www.trustpilot.com/review/${query.toLowerCase()}.com`;
-    const response = await fetch(url);
-    const html = await response.text();
-
-    // Extract reviews
-    const reviewsMatch = html.match(/<div class="review-content">([^]*?)<\/div>/i);
-    const reviews = reviewsMatch ? [reviewsMatch[0]].map(review => {
-      const textMatch = (review as string).match(/<p[^>]*>([^]*?)<\/p>/i);
-      const ratingMatch = (review as string).match(/data-rating="(\d)"/);
-      
-      return {
-        text: textMatch ? 
-          textMatch[1]
-            .replace(/<[^>]*>/g, '')
-            .trim() 
-          : '',
-        rating: ratingMatch ? parseInt(ratingMatch[1]) : 0
-      };
-    }) : [];
-
-    return [{
-      title: `Trustpilot Reviews for ${query}`,
-      summary: `Average rating: ${
-        reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length || 0
-      }. Recent reviews: ${
-        reviews.slice(0, 3).map(rev => rev.text).join(' | ')
-      }`,
-      url: url
-    }];
-  } catch (error) {
-    console.error('Trustpilot search error:', error);
-    return [];
   }
 }
 

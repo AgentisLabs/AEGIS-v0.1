@@ -1,107 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { SearchBar } from './components/SearchBar';
-import { ReportCard } from './components/ReportCard';
-import { Leaderboard } from './components/Leaderboard';
-import { getLeaderboard } from './utils/db';
+import { useState } from 'react';
+import SearchBar from './components/SearchBar';
+import ReportCard from './components/ReportCard';
+import Leaderboard from './components/Leaderboard';
+import { TokenAnalysis } from './types';
 
-export default function FirmSearch() {
-  const [firmName, setFirmName] = useState('');
-  const [currentReport, setCurrentReport] = useState(null);
-  const [error, setError] = useState<string | null>(null);
+export default function TokenAnalyzer() {
   const [isLoading, setIsLoading] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<Array<{
-    firm_name: string;
-    overall_score: number;
-    rank: number;
-  }>>([]);
-  const [searchAttempt, setSearchAttempt] = useState(0);
-  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentReport, setCurrentReport] = useState<TokenAnalysis | null>(null);
+  const [leaderboard, setLeaderboard] = useState<TokenAnalysis[]>([]);
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const data = await getLeaderboard();
-        setLeaderboard(data);
-      } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-      } finally {
-        setIsLoadingLeaderboard(false);
-      }
-    };
-
-    fetchLeaderboard();
-    // Refresh leaderboard every 5 minutes
-    const interval = setInterval(fetchLeaderboard, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!firmName) return;
-
+  const handleSearch = async (address: string) => {
     setIsLoading(true);
     setError(null);
 
-    const fetchAnalysis = async (retryAttempt = 0): Promise<any> => {
-      try {
-        const response = await fetch('/api/analyze-firm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firmName })
-        });
-
-        // Handle timeout
-        if (response.status === 504) {
-          if (retryAttempt < 5) { // Increased to 5 retries
-            console.log(`Timeout occurred, retrying (attempt ${retryAttempt + 1})...`);
-            setSearchAttempt(retryAttempt + 1);
-            await new Promise(resolve => setTimeout(resolve, 10000)); // Increased to 10 seconds
-            return fetchAnalysis(retryAttempt + 1);
-          } else {
-            throw new Error('Analysis is still in progress. Please refresh the page to check results.');
-          }
-        }
-
-        // Handle other non-200 responses
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage;
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.error || 'Failed to analyze firm';
-          } catch {
-            errorMessage = errorText || `Server error: ${response.status}`;
-          }
-          throw new Error(errorMessage);
-        }
-
-        // Parse successful response
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        throw error;
-      }
-    };
-
     try {
-      const data = await fetchAnalysis();
-      
+      const response = await fetch('/api/analyze-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to analyze token');
+      }
+
+      const { data } = await response.json();
       setCurrentReport(data);
-      
-      // Update leaderboard if we have a score
-      if (data && typeof data.overall_score === 'number') {
+
+      // Update leaderboard if high score
+      if (data.overall_score > 70) {
         setLeaderboard(prev => {
           const filtered = prev.filter(item => 
-            item.firm_name.toLowerCase() !== firmName.toLowerCase()
+            item.address.toLowerCase() !== address.toLowerCase()
           );
-          const newEntry = {
-            firm_name: firmName,
-            overall_score: data.overall_score,
-            rank: prev.length + 1
-          };
-          return [...filtered, newEntry]
+          return [...filtered, data]
             .sort((a, b) => b.overall_score - a.overall_score)
             .slice(0, 10);
         });
@@ -109,82 +47,37 @@ export default function FirmSearch() {
 
     } catch (err) {
       console.error('Search error:', err);
-      setError(
-        err instanceof Error 
-          ? err.message 
-          : 'An unexpected error occurred. Please try again.'
-      );
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
-      setSearchAttempt(0);
     }
   };
 
-  const handleFirmClick = (name: string) => {
-    setFirmName(name);
-    handleSubmit(new Event('submit') as any);
-  };
-
   return (
-    <div className="flex flex-col w-full max-w-4xl py-24 mx-auto stretch">
-      <div className="flex flex-col items-center mb-8">
-        <h1 className="text-3xl font-bold text-white">
-          Prop-View 🔍
+    <main className="min-h-screen p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-8">
+          Solana Token Analyzer
         </h1>
+        
+        <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 text-red-500 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            {currentReport && <ReportCard report={currentReport} />}
+          </div>
+          
+          <div className="lg:col-span-1">
+            <Leaderboard tokens={leaderboard} />
+          </div>
+        </div>
       </div>
-      
-      <form onSubmit={handleSubmit} className="mb-8">
-        <SearchBar 
-          value={firmName} 
-          onChange={setFirmName} 
-          isLoading={isLoading} 
-        />
-        <div className="flex justify-center">
-          <button 
-            type="submit"
-            disabled={isLoading}
-            className="mt-4 px-8 py-3 bg-cyan-500/20 hover:bg-cyan-500/30
-              text-cyan-500 rounded-xl font-medium
-              disabled:bg-gray-800 disabled:text-gray-600
-              transition-all duration-300 ease-in-out
-              min-w-[160px]"
-          >
-            {isLoading ? 'Analyzing...' : 'Analyze Firm'}
-          </button>
-        </div>
-      </form>
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl backdrop-blur-lg">
-          {error}
-        </div>
-      )}
-
-      {currentReport && <ReportCard report={currentReport} />}
-
-      {leaderboard && leaderboard.length > 0 && (
-        <div className="mt-12">
-          <Leaderboard 
-            leaderboard={leaderboard} 
-            onFirmClick={handleFirmClick}
-          />
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="text-center mt-4">
-          <div className="text-cyan-500 font-semibold mb-2">
-            {searchAttempt > 0 
-              ? `Still analyzing... (attempt ${searchAttempt}/5)` 
-              : "Analyzing firm..."}
-          </div>
-          <div className="text-gray-400 text-sm">
-            {searchAttempt === 0 
-              ? "First analysis of a new firm typically takes 30-60 seconds" 
-              : "This is taking longer than usual, but we're still working on it..."}
-          </div>
-        </div>
-      )}
-    </div>
+    </main>
   );
 }

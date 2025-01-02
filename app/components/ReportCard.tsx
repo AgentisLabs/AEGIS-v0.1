@@ -1,41 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, TrendingUp, Users, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Star, TrendingUp, Users, ChevronDown, ChevronUp, ExternalLink, Wallet, BarChart3, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-interface FirmReport {
-  name: string;
-  overall_score: number;
-  summary: string;
-  strengths: string[];
-  weaknesses: string[];
-  sources: string[];
-  times_searched: number;
-  twitter_sentiment?: {
-    sentiment_score: number;
-    summary: string;
-    key_themes: string[];
-    positive_points: string[];
-    concerns: string[];
-    recent_developments: string;
-  };
-}
+import { TokenAnalysis } from '../types';
 
 interface ReportCardProps {
-  report: FirmReport;
+  report: TokenAnalysis;
 }
 
-export function ReportCard({ report }: ReportCardProps) {
+export default function ReportCard({ report }: ReportCardProps) {
   const [showSources, setShowSources] = useState(false);
-
-  console.log('Report sources:', report.sources);
 
   const metrics = [
     { icon: Star, label: 'Overall Score', value: report.overall_score },
-    { icon: Users, label: 'Total Searches', value: report.times_searched || 0 },
-    { icon: TrendingUp, label: 'Strengths', value: report.strengths.length },
-    { icon: Users, label: 'Sources', value: report.sources.length },
+    { icon: Activity, label: 'Price Trend', value: report.market_data?.price_trend || 'N/A' },
+    { icon: BarChart3, label: 'Liquidity', value: report.market_data?.liquidity_assessment || 'N/A' },
+    { icon: Wallet, label: 'Holders', value: report.chain_metrics?.total_holders || 'N/A' },
   ];
 
   const container = {
@@ -62,8 +43,11 @@ export function ReportCard({ report }: ReportCardProps) {
     >
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h2 className="text-3xl font-bold mb-2">{report.name}</h2>
-          <p className="text-gray-400">AI-Generated Analysis Report</p>
+          <h2 className="text-3xl font-bold mb-2">
+            {report.name || 'Unknown Token'}
+            <span className="text-gray-400 text-lg ml-2">{report.symbol}</span>
+          </h2>
+          <p className="text-sm font-mono text-gray-400 break-all">{report.address}</p>
         </div>
         <motion.div
           initial={{ scale: 0 }}
@@ -71,8 +55,12 @@ export function ReportCard({ report }: ReportCardProps) {
           transition={{ delay: 0.3 }}
           className="text-right"
         >
-          <div className="text-4xl font-bold text-emerald-500">{report.overall_score}</div>
-          <div className="text-gray-400">Overall Score</div>
+          <div className={`text-4xl font-bold ${
+            report.overall_score >= 70 ? 'text-emerald-500' :
+            report.overall_score >= 50 ? 'text-yellow-500' :
+            'text-red-500'
+          }`}>{report.overall_score}</div>
+          <div className="text-gray-400">Trust Score</div>
         </motion.div>
       </div>
 
@@ -89,8 +77,8 @@ export function ReportCard({ report }: ReportCardProps) {
             className="text-center p-4 bg-gray-800/50 rounded-xl border border-gray-800 hover:border-cyan-500/50 transition-colors duration-300"
           >
             <Icon className="w-6 h-6 mx-auto mb-2 text-cyan-500" />
-            <div className="text-2xl font-bold mb-1">{value}</div>
-            <div className="text-gray-400">{label}</div>
+            <div className="text-xl font-bold mb-1">{value}</div>
+            <div className="text-gray-400 text-sm">{label}</div>
           </motion.div>
         ))}
       </motion.div>
@@ -117,7 +105,7 @@ export function ReportCard({ report }: ReportCardProps) {
           </div>
 
           <div>
-            <h4 className="text-lg font-semibold mb-3 text-red-500">Weaknesses</h4>
+            <h4 className="text-lg font-semibold mb-3 text-red-500">Risk Factors</h4>
             <div className="space-y-2">
               {report.weaknesses.map((weakness, i) => (
                 <motion.div
@@ -134,39 +122,37 @@ export function ReportCard({ report }: ReportCardProps) {
         </div>
       </motion.div>
 
-      {report.twitter_sentiment && (
+      {report.social_metrics && (
         <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">Social Media Sentiment</h3>
-          <p className="text-gray-300 mb-4">{report.twitter_sentiment.summary}</p>
-          
+          <h3 className="text-xl font-semibold mb-4">Social Sentiment</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-lg font-semibold mb-3 text-blue-500">Key Themes</h4>
+            <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
+              <h4 className="text-lg font-semibold mb-3 text-blue-500">Community Metrics</h4>
               <div className="space-y-2">
-                {report.twitter_sentiment.key_themes.map((theme, i) => (
-                  <motion.div
-                    key={i}
-                    variants={item}
-                    className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-blue-500/50 transition-colors duration-300"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span className="text-gray-300">{theme}</span>
-                  </motion.div>
-                ))}
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Sentiment</span>
+                  <span className={`font-semibold ${
+                    report.social_metrics.sentiment_score > 0 ? 'text-emerald-500' :
+                    report.social_metrics.sentiment_score < 0 ? 'text-red-500' :
+                    'text-yellow-500'
+                  }`}>
+                    {report.social_metrics.sentiment_score > 0 ? 'Positive' :
+                     report.social_metrics.sentiment_score < 0 ? 'Negative' :
+                     'Neutral'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">24h Mentions</span>
+                  <span className="font-semibold text-white">{report.social_metrics.mentions_24h}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Community Trust</span>
+                  <span className="font-semibold text-white">
+                    {(report.social_metrics.community_trust * 100).toFixed(0)}%
+                  </span>
+                </div>
               </div>
             </div>
-            
-            {report.twitter_sentiment.recent_developments && (
-              <div>
-                <h4 className="text-lg font-semibold mb-3 text-purple-500">Recent Developments</h4>
-                <motion.div
-                  variants={item}
-                  className="bg-gray-800/30 p-4 rounded-lg border border-gray-800"
-                >
-                  <p className="text-gray-300">{report.twitter_sentiment.recent_developments}</p>
-                </motion.div>
-              </div>
-            )}
           </div>
         </motion.div>
       )}
@@ -176,12 +162,8 @@ export function ReportCard({ report }: ReportCardProps) {
           onClick={() => setShowSources(!showSources)}
           className="flex items-center justify-between w-full text-left text-gray-400 hover:text-white transition-colors duration-300"
         >
-          <span className="text-lg font-semibold">Sources</span>
-          {showSources ? (
-            <ChevronUp className="w-5 h-5" />
-          ) : (
-            <ChevronDown className="w-5 h-5" />
-          )}
+          <span className="text-lg font-semibold">Sources & References</span>
+          {showSources ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </button>
         
         {showSources && (
@@ -199,8 +181,9 @@ export function ReportCard({ report }: ReportCardProps) {
                 href={source}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-cyan-500 hover:text-cyan-400 transition-colors duration-300"
+                className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400 transition-colors duration-300"
               >
+                <ExternalLink className="w-4 h-4" />
                 {source}
               </motion.a>
             ))}

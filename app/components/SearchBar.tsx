@@ -1,39 +1,66 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { PublicKey } from '@solana/web3.js';
 
 interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
-  isLoading?: boolean;
+  onSearch: (address: string) => void;
+  isLoading: boolean;
 }
 
-export function SearchBar({ value, onChange, isLoading = false }: SearchBarProps) {
+export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
+  const [address, setAddress] = useState('');
+  const [error, setError] = useState('');
+
+  const isValidSolanaAddress = (address: string): boolean => {
+    try {
+      new PublicKey(address);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!address.trim()) {
+      setError('Please enter a token address');
+      return;
+    }
+
+    if (!isValidSolanaAddress(address.trim())) {
+      setError('Please enter a valid Solana token address');
+      return;
+    }
+
+    onSearch(address.trim());
+  };
+
   return (
-    <div className="w-full max-w-2xl mx-auto relative flex items-center">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Search for a prop firm..."
-        className="w-full px-6 py-4 text-lg rounded-xl
-          bg-gray-900/50 backdrop-blur-lg
-          border border-gray-800 hover:border-cyan-500/50
-          text-white placeholder-gray-400
-          focus:outline-none focus:border-cyan-500
-          transition-all duration-300 ease-in-out
-          shadow-lg shadow-black/10"
-      />
-      <div
-        className="absolute right-4 p-2 rounded-lg
-          text-gray-400
-          transition-all duration-300 ease-in-out"
-      >
-        {isLoading ? (
-          <div className="w-5 h-5 border-2 border-gray-600 border-t-cyan-500 rounded-full animate-spin" />
-        ) : (
-          <Search className="w-5 h-5" />
+    <div className="w-full max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Enter Solana token address..."
+            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+          >
+            {isLoading ? 'Analyzing...' : 'Analyze'}
+          </button>
+        </div>
+        {error && (
+          <p className="text-red-500 text-sm mt-1">{error}</p>
         )}
-      </div>
+      </form>
     </div>
   );
 }

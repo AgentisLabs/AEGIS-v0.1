@@ -1,19 +1,15 @@
-import React from 'react';
+'use client';
+
 import { Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-interface LeaderboardEntry {
-  firm_name: string;
-  overall_score: number;
-}
+import { TokenAnalysis } from '../types';
 
 interface LeaderboardProps {
-  leaderboard: LeaderboardEntry[];
-  onFirmClick?: (firmName: string) => void;
+  tokens: TokenAnalysis[];
 }
 
-export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps) {
-  const sortedFirms = leaderboard ? [...leaderboard].sort((a, b) => b.overall_score - a.overall_score) : [];
+export default function Leaderboard({ tokens = [] }: LeaderboardProps) {
+  const sortedTokens = [...tokens].sort((a, b) => b.overall_score - a.overall_score);
 
   const container = {
     hidden: { opacity: 0 },
@@ -30,8 +26,13 @@ export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps)
     show: { opacity: 1, x: 0 }
   };
 
-  if (!leaderboard || leaderboard.length === 0) {
-    return null;
+  if (tokens.length === 0) {
+    return (
+      <div className="bg-gray-900/50 backdrop-blur-lg rounded-xl border border-gray-800 p-6">
+        <h2 className="text-xl font-bold text-white mb-4">Top Tokens</h2>
+        <p className="text-gray-400">No tokens analyzed yet</p>
+      </div>
+    );
   }
 
   return (
@@ -39,11 +40,10 @@ export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps)
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-2xl mx-auto mt-12"
     >
       <div className="flex items-center gap-3 mb-6">
         <Trophy className="w-6 h-6 text-emerald-500" />
-        <h2 className="text-2xl font-bold text-white">Top Prop Firms</h2>
+        <h2 className="text-2xl font-bold text-white">Top Tokens</h2>
       </div>
       
       <motion.div
@@ -52,14 +52,11 @@ export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps)
         animate="show"
         className="bg-gray-900/50 backdrop-blur-lg rounded-xl border border-gray-800"
       >
-        {sortedFirms.map((firm, index) => (
+        {sortedTokens.map((token, index) => (
           <motion.div
-            key={firm.firm_name}
+            key={token.address}
             variants={item}
-            onClick={() => onFirmClick?.(firm.firm_name)}
-            className={`flex items-center justify-between p-4 border-b border-gray-800 
-              last:border-b-0 hover:bg-gray-800/30 transition-colors duration-300
-              ${onFirmClick ? 'cursor-pointer' : ''}`}
+            className="flex items-center justify-between p-4 border-b border-gray-800 last:border-b-0"
           >
             <div className="flex items-center gap-4">
               <span className={`w-8 h-8 flex items-center justify-center rounded-full 
@@ -71,10 +68,17 @@ export function Leaderboard({ leaderboard = [], onFirmClick }: LeaderboardProps)
               >
                 {index + 1}
               </span>
-              <span className="text-gray-300 font-medium">{firm.firm_name}</span>
+              <div>
+                <span className="text-gray-300 font-medium">
+                  {token.symbol || 'Unknown'}
+                </span>
+                <p className="text-sm text-gray-500 truncate max-w-[200px]">
+                  {token.address}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-cyan-500 font-bold">{firm.overall_score.toFixed(1)}</span>
+              <span className="text-cyan-500 font-bold">{token.overall_score.toFixed(1)}</span>
               <span className="text-gray-500">/100</span>
             </div>
           </motion.div>
