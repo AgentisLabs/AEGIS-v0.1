@@ -5,6 +5,7 @@ import SearchBar from './components/SearchBar';
 import ReportCard from './components/ReportCard';
 import Leaderboard from './components/Leaderboard';
 import { TokenAnalysis } from './types';
+import ChatBox from './components/ChatBox';
 
 export default function TokenAnalyzer() {
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +75,11 @@ export default function TokenAnalyzer() {
           </div>
           
           <div className="lg:col-span-1">
-            <Leaderboard tokens={leaderboard} />
+            {currentReport && (
+              <div className="mt-8">
+                <ChatBox report={currentReport} />
+              </div>
+            )}
           </div>
         </div>
       </div>
