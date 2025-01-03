@@ -12,12 +12,50 @@ interface ReportCardProps {
 export default function ReportCard({ report }: ReportCardProps) {
   const [showSources, setShowSources] = useState(false);
 
+  // Add detailed console logging
+  console.log('Full report data:', report);
+  console.log('Market data:', report.market_data);
+  console.log('Market metrics:', report.market_data?.market_metrics);
+  console.log('Price trend:', report.market_data?.market_metrics?.price_trend);
+
   const metrics = [
-    { icon: Star, label: 'Overall Score', value: report.overall_score },
-    { icon: Activity, label: 'Price Trend', value: report.market_data?.price_trend || 'N/A' },
-    { icon: BarChart3, label: 'Liquidity', value: report.market_data?.liquidity_assessment || 'N/A' },
-    { icon: Wallet, label: 'Holders', value: report.chain_metrics?.total_holders || 'N/A' },
+    { 
+      icon: Star, 
+      label: 'Overall Score', 
+      value: report.overall_score 
+    },
+    { 
+      icon: Activity, 
+      label: 'Price Trend', 
+      value: report.market_data?.market_metrics?.price_trend?.price_trend === 'up' ? '↑ Up' :
+             report.market_data?.market_metrics?.price_trend?.price_trend === 'down' ? '↓ Down' : 
+             'Neutral',
+      subValue: report.market_data?.market_metrics?.price_trend?.price_change_24h ? 
+                `${report.market_data.market_metrics.price_trend.price_change_24h.toFixed(2)}%` : 
+                null
+    },
+    { 
+      icon: BarChart3, 
+      label: 'Liquidity', 
+      value: report.market_data?.market_metrics?.liquidity_score ? 
+             `${Math.round(report.market_data.market_metrics.liquidity_score)}/100` : 
+             'N/A',
+      subValue: report.market_data?.market_metrics?.confidence || null
+    },
+    { 
+      icon: Wallet, 
+      label: 'Holders', 
+      value: report.market_data?.market_metrics?.holders?.total_holders || 'N/A' 
+    }
   ];
+
+  // Add debug log for the actual price trend value being used
+  console.log('Price trend value being used:', {
+    priceTrendPath: report.market_data?.market_metrics?.price_trend?.price_trend,
+    fullPriceTrendObject: report.market_data?.market_metrics?.price_trend,
+    marketMetrics: report.market_data?.market_metrics,
+    marketData: report.market_data
+  });
 
   const container = {
     hidden: { opacity: 0 },
@@ -68,17 +106,22 @@ export default function ReportCard({ report }: ReportCardProps) {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8"
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
       >
-        {metrics.map(({ icon: Icon, label, value }) => (
+        {metrics.map((metric, i) => (
           <motion.div
-            key={label}
+            key={metric.label}
             variants={item}
-            className="text-center p-4 bg-gray-800/50 rounded-xl border border-gray-800 hover:border-cyan-500/50 transition-colors duration-300"
+            className="bg-gray-800/50 rounded-lg p-4"
           >
-            <Icon className="w-6 h-6 mx-auto mb-2 text-cyan-500" />
-            <div className="text-xl font-bold mb-1">{value}</div>
-            <div className="text-gray-400 text-sm">{label}</div>
+            <div className="flex items-center mb-2">
+              <metric.icon className="w-5 h-5 mr-2 text-gray-400" />
+              <span className="text-gray-400 text-sm">{metric.label}</span>
+            </div>
+            <div className="text-2xl font-bold">{metric.value}</div>
+            {metric.subValue && (
+              <div className="text-sm text-gray-400 mt-1">{metric.subValue}</div>
+            )}
           </motion.div>
         ))}
       </motion.div>

@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       strengths: analysis.strengths || [],
       weaknesses: analysis.weaknesses || [],
       sources: analysis.sources || [],
+      market_data: marketData,
       market_metrics: analysis.market_metrics || {},
       risk_assessment: analysis.risk_assessment || {},
       social_metrics: analysis.social_metrics || {},

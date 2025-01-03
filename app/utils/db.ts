@@ -46,6 +46,9 @@ export async function saveTokenAnalysis(address: string, analysisData: Partial<T
         address: address.toLowerCase(),
         ...analysisData,
         last_updated: new Date().toISOString()
+      }, {
+        onConflict: 'address',
+        ignoreDuplicates: false
       })
       .select()
       .single();
