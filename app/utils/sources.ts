@@ -462,15 +462,39 @@ export async function searchTokenInfo(address: string) {
     const marketData = await searchTokenMarketData(address);
     console.log('Market data retrieved:', marketData ? 'success' : 'failed');
 
-    // Basic token info
+    // Get tweets
+    const tweets = await searchTweets(address);
+    console.log('Twitter results sample:', tweets);
+
+    // Get token analysis with tweets included
+    const analysis = await generateTokenScore({
+      market_data: marketData,
+      twitter_sentiment: tweets,
+      token_info: [] // Keep this for backward compatibility
+    });
+
+    // Transform the data to match TokenAnalysis interface and UI order
     const tokenInfo = {
       address: address,
-      name: 'Unknown Token', // We'll update this from other sources
-      symbol: 'UNKNOWN',
+      name: marketData?.name || 'Unknown Token',
+      symbol: marketData?.symbol || 'UNKNOWN',
+      overall_score: analysis.overall_score,
       market_data: marketData,
+      summary: analysis.summary,
+      strengths: analysis.strengths,
+      weaknesses: analysis.weaknesses,
+      risk_assessment: analysis.risk_assessment,
+      market_metrics: analysis.market_metrics,
+      social_metrics: {
+        sentiment_score: analysis.social_metrics?.sentiment_score || 0,
+        community_trust: analysis.social_metrics?.community_trust || 0,
+        trending_score: analysis.social_metrics?.trending_score || 0,
+        summary: analysis.social_metrics?.summary || 'No social data available'
+      },
       last_updated: new Date().toISOString()
     };
 
+    console.log('Final transformed token info:', tokenInfo);
     return tokenInfo;
   } catch (error) {
     console.error('Error in searchTokenInfo:', error);
@@ -478,56 +502,9 @@ export async function searchTokenInfo(address: string) {
   }
 }
 
-export async function analyzeTweetSentiment(tweets: any[], tokenAddress: string) {
-  if (!tweets.length) return null;
-
-  const tweetTexts = tweets.map(tweet => tweet.text).join('\n\n');
-  
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert at analyzing Solana token sentiment on Twitter. 
-        Given a list of tweets about token ${tokenAddress}, analyze:
-        1. Overall sentiment (positive, negative, or neutral)
-        2. Common themes or topics mentioned
-        3. Notable praise or concerns
-        4. Level of community engagement
-        5. Recent developments or announcements
-        6. Market sentiment indicators
-        
-        Provide your analysis in this JSON format:
-        {
-          "sentiment": "positive|negative|neutral",
-          "summary": "<2-3 sentence overview>",
-          "common_themes": ["<list of recurring topics>"],
-          "notable_praise": ["<specific positive feedback>"],
-          "notable_concerns": ["<specific negative feedback>"],
-          "engagement_level": "high|medium|low",
-          "market_indicators": ["<relevant trading/price mentions>"]
-        }`
-      },
-      {
-        role: "user",
-        content: `Analyze these tweets about ${tokenAddress}:\n\n${tweetTexts}`
-      }
-    ],
-    temperature: 0.7,
-    response_format: { type: "json_object" }
-  });
-
-  const content = response.choices[0].message.content;
-  if (!content) {
-    return null;
-  }
-
-  return JSON.parse(content);
-}
-
 export async function generateTokenScore(data: {
   twitter_sentiment: any[];
-  market_data: any; // Changed from SearchResult[] to accept detailed market data
+  market_data: any;
   token_info: SearchResult[];
 }) {
   try {
@@ -550,31 +527,21 @@ export async function generateTokenScore(data: {
         market_cap: data.market_data?.market_metrics?.marketCap || 0,
         fdv: data.market_data?.market_metrics?.fdv || 0,
         mcap_to_fdv: data.market_data?.market_metrics?.marketCap / (data.market_data?.market_metrics?.fdv || 1),
-      },
-      age_metrics: {
-        pair_created_at: data.market_data?.market_metrics?.pairCreatedAt || null,
-        days_since_creation: data.market_data?.market_metrics?.pairCreatedAt ? 
-          Math.floor((Date.now() - new Date(data.market_data.market_metrics.pairCreatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 
-          null
       }
     };
+
+    // Format tweets for analysis
+    const tweetTexts = data.twitter_sentiment?.map(tweet => tweet.text).join('\n\n');
 
     const prompt = `Generate a comprehensive risk analysis for this Solana token based on:
 
 MARKET METRICS:
 ${JSON.stringify(marketAnalysis, null, 2)}
 
-TWITTER SENTIMENT:
-${JSON.stringify(data.twitter_sentiment || {}, null, 2)}
+RECENT TWEETS:
+${tweetTexts || 'No recent tweets found'}
 
-Please consider these specific risk factors:
-1. Token Age: New tokens (< 7 days) are higher risk
-2. Liquidity Depth: Low liquidity (< $50k) is higher risk
-3. Volume/MCap Ratio: High volume relative to market cap can indicate manipulation
-4. Price Volatility: Extreme price changes indicate higher risk
-5. Market Cap to FDV ratio: Large disparity indicates high dilution risk
-
-Based on the data above, provide an analysis in this JSON format:
+Please analyze both market data and social sentiment to provide an analysis in this JSON format:
 {
   "overall_score": <number 0-100>,
   "summary": "<detailed risk assessment including specific metrics>",
@@ -592,11 +559,17 @@ Based on the data above, provide an analysis in this JSON format:
     "liquidity_assessment": "high|medium|low",
     "trading_volume": "high|medium|low",
     "sustainability": "sustainable|unsustainable"
+  },
+  "social_metrics": {
+    "sentiment_score": <number between -1 and 1>,
+    "community_trust": <number between 0 and 1>,
+    "trending_score": <number between 0 and 100>,
+    "summary": "<2-3 sentence analysis of community sentiment>"
   }
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview", // Updated to latest model
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -607,7 +580,7 @@ Based on the data above, provide an analysis in this JSON format:
           content: prompt
         }
       ],
-      temperature: 0.3, // Reduced for more consistent, conservative analysis
+      temperature: 0.3,
       response_format: { type: "json_object" }
     });
 
@@ -627,6 +600,12 @@ Based on the data above, provide an analysis in this JSON format:
         liquidity_risk: "high",
         volatility_risk: "high",
         manipulation_risk: "high"
+      },
+      social_metrics: {
+        sentiment_score: 0,
+        community_trust: 0.5,
+        trending_score: 0,
+        summary: "Error analyzing social sentiment"
       }
     };
   }

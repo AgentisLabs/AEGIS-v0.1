@@ -86,6 +86,19 @@ export default function ReportCard({ report }: ReportCardProps) {
     show: { opacity: 1, y: 0 }
   };
 
+  {/* Add this debug log */}
+  {console.log('Attempting to render social metrics:', {
+    hasSocialMetrics: !!report.social_metrics,
+    socialMetricsData: report.social_metrics
+  })}
+
+  {/* Add this debug log */}
+  {console.log('Report data in ReportCard:', {
+    hasSocialMetrics: !!report.social_metrics,
+    socialMetricsData: report.social_metrics,
+    fullReport: report
+  })}
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -179,33 +192,149 @@ export default function ReportCard({ report }: ReportCardProps) {
         </div>
       </motion.div>
 
+      <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
+        <h3 className="text-xl font-semibold mb-4">Risk Assessment</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
+            <h4 className="text-lg font-semibold mb-3 text-orange-500">Risk Levels</h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Overall Risk</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.risk_assessment?.level === 'extreme' ? 'bg-red-500/20 text-red-400' :
+                  report.risk_assessment?.level === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                  report.risk_assessment?.level === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {report.risk_assessment?.level?.charAt(0).toUpperCase() + report.risk_assessment?.level?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Liquidity Risk</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.risk_assessment?.liquidity_risk === 'high' ? 'bg-red-500/20 text-red-400' :
+                  report.risk_assessment?.liquidity_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {report.risk_assessment?.liquidity_risk?.charAt(0).toUpperCase() + report.risk_assessment?.liquidity_risk?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Volatility Risk</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.risk_assessment?.volatility_risk === 'high' ? 'bg-red-500/20 text-red-400' :
+                  report.risk_assessment?.volatility_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {report.risk_assessment?.volatility_risk?.charAt(0).toUpperCase() + report.risk_assessment?.volatility_risk?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Manipulation Risk</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.risk_assessment?.manipulation_risk === 'high' ? 'bg-red-500/20 text-red-400' :
+                  report.risk_assessment?.manipulation_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-green-500/20 text-green-400'
+                }`}>
+                  {report.risk_assessment?.manipulation_risk?.charAt(0).toUpperCase() + report.risk_assessment?.manipulation_risk?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
+            <h4 className="text-lg font-semibold mb-3 text-blue-500">Market Assessment</h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Price Trend</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.market_metrics?.price_trend === 'bullish' ? 'bg-green-500/20 text-green-400' :
+                  report.market_metrics?.price_trend === 'bearish' ? 'bg-red-500/20 text-red-400' :
+                  'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {report.market_metrics?.price_trend?.charAt(0).toUpperCase() + report.market_metrics?.price_trend?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Liquidity</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.market_metrics?.liquidity_assessment === 'high' ? 'bg-green-500/20 text-green-400' :
+                  report.market_metrics?.liquidity_assessment === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {report.market_metrics?.liquidity_assessment?.charAt(0).toUpperCase() + report.market_metrics?.liquidity_assessment?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Trading Volume</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.market_metrics?.trading_volume === 'high' ? 'bg-green-500/20 text-green-400' :
+                  report.market_metrics?.trading_volume === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {report.market_metrics?.trading_volume?.charAt(0).toUpperCase() + report.market_metrics?.trading_volume?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Sustainability</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  report.market_metrics?.sustainability === 'sustainable' ? 'bg-green-500/20 text-green-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {report.market_metrics?.sustainability?.charAt(0).toUpperCase() + report.market_metrics?.sustainability?.slice(1) || 'Unknown'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
       {report.social_metrics && (
         <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
           <h3 className="text-xl font-semibold mb-4">Social Sentiment</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
-              <h4 className="text-lg font-semibold mb-3 text-blue-500">Community Metrics</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
+              <h4 className="text-lg font-semibold mb-3 text-purple-500">Community Sentiment</h4>
+              <div className="text-gray-300">
+                <p>{report.social_metrics.summary}</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
+              <h4 className="text-lg font-semibold mb-3 text-blue-500">Sentiment Metrics</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
                   <span className="text-gray-400">Sentiment</span>
-                  <span className={`font-semibold ${
-                    report.social_metrics.sentiment_score > 0 ? 'text-emerald-500' :
-                    report.social_metrics.sentiment_score < 0 ? 'text-red-500' :
-                    'text-yellow-500'
+                  <span className={`font-semibold px-3 py-1 rounded-full ${
+                    report.social_metrics.sentiment_score > 0.3 ? 'bg-green-500/20 text-green-400' :
+                    report.social_metrics.sentiment_score < -0.3 ? 'bg-red-500/20 text-red-400' :
+                    'bg-yellow-500/20 text-yellow-400'
                   }`}>
-                    {report.social_metrics.sentiment_score > 0 ? 'Positive' :
-                     report.social_metrics.sentiment_score < 0 ? 'Negative' :
+                    {report.social_metrics.sentiment_score > 0.3 ? 'Positive' :
+                     report.social_metrics.sentiment_score < -0.3 ? 'Negative' :
                      'Neutral'}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">24h Mentions</span>
-                  <span className="font-semibold text-white">{report.social_metrics.mentions_24h}</span>
-                </div>
-                <div className="flex justify-between">
+                
+                <div className="flex justify-between items-center">
                   <span className="text-gray-400">Community Trust</span>
-                  <span className="font-semibold text-white">
+                  <span className={`font-semibold px-3 py-1 rounded-full ${
+                    report.social_metrics.community_trust > 0.7 ? 'bg-green-500/20 text-green-400' :
+                    report.social_metrics.community_trust > 0.4 ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
                     {(report.social_metrics.community_trust * 100).toFixed(0)}%
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Trending Score</span>
+                  <span className={`font-semibold px-3 py-1 rounded-full ${
+                    report.social_metrics.trending_score > 70 ? 'bg-green-500/20 text-green-400' :
+                    report.social_metrics.trending_score > 30 ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {report.social_metrics.trending_score}/100
                   </span>
                 </div>
               </div>
