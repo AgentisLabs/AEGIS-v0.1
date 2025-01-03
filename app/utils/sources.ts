@@ -25,7 +25,7 @@ function calculatePriceTrend(priceHistory: any) {
   };
 }
 
-export async function searchTweets(query: string, maxResults = 100) {
+export async function searchTweets(query: string, maxResults = 25) {
   try {
     console.log('Searching Twitter for token:', query);
     const results = await exa.searchAndContents(
@@ -35,23 +35,23 @@ export async function searchTweets(query: string, maxResults = 100) {
         includeDomains: ["twitter.com"],
         numResults: maxResults,
         text: true,
-        summary: true
+        summary: true,
+        timeRange: {
+          start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        }
       }
     );
 
-    console.log('Twitter results sample:', 
-      results.results.slice(0, 3).map(r => ({
-        text: r.text?.slice(0, 200) + '...',
-        url: r.url
-      }))
-    );
-
-    return results.results.map(result => ({
-      text: result.text || '',
-      url: result.url || '',
-      summary: result.summary || '',
-      highlights: []
-    }));
+    console.log(`Found ${results.results.length} tweets`);
+    
+    return results.results
+      .slice(0, 25)
+      .map(result => ({
+        text: result.text?.slice(0, 500) || '',
+        url: result.url || '',
+        summary: result.summary?.slice(0, 200) || '',
+        highlights: []
+      }));
 
   } catch (error) {
     console.error('Twitter search error:', error);
@@ -427,13 +427,15 @@ export async function searchTokenMarketData(address: string) {
   try {
     console.log('Fetching market data for:', address);
     
-    // Get DexScreener data only
+    // Get DexScreener data
     const dexScreenerData = await getDexScreenerTokenInfo(address);
     
     console.log('DexScreener Data:', dexScreenerData);
 
     return {
       price_usd: dexScreenerData?.price_usd || 0,
+      name: dexScreenerData?.base_token?.name || 'Unknown Token',
+      symbol: dexScreenerData?.base_token?.symbol || 'UNKNOWN',
       market_metrics: {
         liquidity_score: dexScreenerData?.liquidity_usd ? 
           Math.min(100, Math.log10(dexScreenerData.liquidity_usd) * 10) : 0,
@@ -443,9 +445,13 @@ export async function searchTokenMarketData(address: string) {
         marketCap: dexScreenerData?.marketCap || 0,
         fdv: dexScreenerData?.fdv || 0,
         pairCreatedAt: dexScreenerData?.pairCreatedAt || null,
-        holders: 0, // Remove Solscan/Birdeye holder count
+        holders: 0,
         socials: dexScreenerData?.socials || [],
-        websites: dexScreenerData?.websites || []
+        websites: dexScreenerData?.websites || [],
+        pair: {
+          base_token: dexScreenerData?.base_token || { symbol: 'UNKNOWN', name: 'Unknown Token' },
+          quote_token: dexScreenerData?.quote_token || { symbol: 'UNKNOWN', name: 'Unknown Token' }
+        }
       }
     };
   } catch (error) {

@@ -109,10 +109,18 @@ export default function ReportCard({ report }: ReportCardProps) {
       <div className="flex justify-between items-start mb-8">
         <div>
           <h2 className="text-3xl font-bold mb-2">
-            {report.name || 'Unknown Token'}
-            <span className="text-gray-400 text-lg ml-2">{report.symbol}</span>
+            {report.market_data?.market_metrics?.pair?.base_token?.symbol || 'Unknown Token'}
+            <span className="text-gray-400 text-lg ml-2">
+              {report.market_data?.market_metrics?.pair?.quote_token?.symbol && 
+               `/ ${report.market_data.market_metrics.pair.quote_token.symbol}`}
+            </span>
           </h2>
           <p className="text-sm font-mono text-gray-400 break-all">{report.address}</p>
+          {report.market_data?.market_metrics?.pair?.base_token?.name && (
+            <p className="text-sm text-gray-400 mt-1">
+              {report.market_data.market_metrics.pair.base_token.name}
+            </p>
+          )}
         </div>
         <motion.div
           initial={{ scale: 0 }}
@@ -312,7 +320,7 @@ export default function ReportCard({ report }: ReportCardProps) {
                   }`}>
                     {report.social_metrics.sentiment_score > 0.3 ? 'Positive' :
                      report.social_metrics.sentiment_score < -0.3 ? 'Negative' :
-                     'Neutral'}
+                     'Mixed'}
                   </span>
                 </div>
                 
