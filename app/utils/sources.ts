@@ -527,53 +527,87 @@ export async function analyzeTweetSentiment(tweets: any[], tokenAddress: string)
 
 export async function generateTokenScore(data: {
   twitter_sentiment: any[];
-  market_data: SearchResult[];
+  market_data: any; // Changed from SearchResult[] to accept detailed market data
   token_info: SearchResult[];
 }) {
   try {
-    const prompt = `Generate a comprehensive analysis for this Solana token based on:
+    // Format market data for analysis
+    const marketAnalysis = {
+      price_metrics: {
+        current_price: data.market_data?.price_usd || 0,
+        price_change_24h: data.market_data?.market_metrics?.price_trend?.price_change_24h || 0,
+        trend: data.market_data?.market_metrics?.price_trend?.price_trend || 'neutral'
+      },
+      liquidity_metrics: {
+        total_liquidity: data.market_data?.market_metrics?.liquidity_usd || 0,
+        liquidity_score: data.market_data?.market_metrics?.liquidity_score || 0,
+      },
+      volume_metrics: {
+        volume_24h: data.market_data?.market_metrics?.volume_24h || 0,
+        volume_to_mcap: data.market_data?.market_metrics?.volume_24h / (data.market_data?.market_metrics?.marketCap || 1)
+      },
+      market_metrics: {
+        market_cap: data.market_data?.market_metrics?.marketCap || 0,
+        fdv: data.market_data?.market_metrics?.fdv || 0,
+        mcap_to_fdv: data.market_data?.market_metrics?.marketCap / (data.market_data?.market_metrics?.fdv || 1),
+      },
+      age_metrics: {
+        pair_created_at: data.market_data?.market_metrics?.pairCreatedAt || null,
+        days_since_creation: data.market_data?.market_metrics?.pairCreatedAt ? 
+          Math.floor((Date.now() - new Date(data.market_data.market_metrics.pairCreatedAt).getTime()) / (1000 * 60 * 60 * 24)) : 
+          null
+      }
+    };
 
-TWITTER ANALYSIS:
+    const prompt = `Generate a comprehensive risk analysis for this Solana token based on:
+
+MARKET METRICS:
+${JSON.stringify(marketAnalysis, null, 2)}
+
+TWITTER SENTIMENT:
 ${JSON.stringify(data.twitter_sentiment || {}, null, 2)}
 
-MARKET DATA:
-${JSON.stringify(data.market_data || [], null, 2)}
-
-TOKEN INFO:
-${JSON.stringify(data.token_info || [], null, 2)}
+Please consider these specific risk factors:
+1. Token Age: New tokens (< 7 days) are higher risk
+2. Liquidity Depth: Low liquidity (< $50k) is higher risk
+3. Volume/MCap Ratio: High volume relative to market cap can indicate manipulation
+4. Price Volatility: Extreme price changes indicate higher risk
+5. Market Cap to FDV ratio: Large disparity indicates high dilution risk
 
 Based on the data above, provide an analysis in this JSON format:
 {
   "overall_score": <number 0-100>,
-  "summary": "<comprehensive overview>",
-  "strengths": ["<specific positive aspects>"],
-  "weaknesses": ["<specific negative aspects>"],
-  "sources": ["<all URLs referenced>"],
+  "summary": "<detailed risk assessment including specific metrics>",
+  "strengths": ["<specific positive aspects with numerical evidence>"],
+  "weaknesses": ["<specific risk factors with numerical evidence>"],
+  "risk_assessment": {
+    "level": "extreme|high|medium|low",
+    "factors": ["<specific risk factors with metrics>"],
+    "liquidity_risk": "high|medium|low",
+    "volatility_risk": "high|medium|low",
+    "manipulation_risk": "high|medium|low"
+  },
   "market_metrics": {
     "price_trend": "bullish|bearish|neutral",
     "liquidity_assessment": "high|medium|low",
     "trading_volume": "high|medium|low",
-    "holder_distribution": "concentrated|distributed"
-  },
-  "risk_assessment": {
-    "level": "low|medium|high",
-    "factors": ["<specific risk factors>"]
+    "sustainability": "sustainable|unsustainable"
   }
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4-turbo-preview", // Updated to latest model
       messages: [
         {
           role: "system",
-          content: "You are a Solana token analyst specializing in technical analysis, on-chain metrics, and social sentiment. Provide detailed analysis in JSON format."
+          content: "You are a cryptocurrency risk analyst specializing in Solana tokens. Your analysis should be data-driven, skeptical, and focused on identifying potential risks and red flags. Always highlight concerning metrics and unusual patterns."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.7,
+      temperature: 0.3, // Reduced for more consistent, conservative analysis
       response_format: { type: "json_object" }
     });
 
@@ -586,10 +620,14 @@ Based on the data above, provide an analysis in this JSON format:
       overall_score: 0,
       summary: "Error analyzing token",
       strengths: [],
-      weaknesses: [],
-      sources: [],
-      market_metrics: {},
-      risk_assessment: { level: "high", factors: ["Analysis failed"] }
+      weaknesses: ["Analysis failed - insufficient data"],
+      risk_assessment: { 
+        level: "extreme", 
+        factors: ["Analysis failed"], 
+        liquidity_risk: "high",
+        volatility_risk: "high",
+        manipulation_risk: "high"
+      }
     };
   }
 }

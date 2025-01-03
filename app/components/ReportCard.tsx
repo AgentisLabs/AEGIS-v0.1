@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, TrendingUp, Users, ChevronDown, ChevronUp, ExternalLink, Wallet, BarChart3, Activity, Link, ChartBar } from 'lucide-react';
+import { Star, TrendingUp, Users, ExternalLink, Wallet, BarChart3, Activity, Link, ChartBar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TokenAnalysis } from '../types';
 
@@ -10,8 +10,6 @@ interface ReportCardProps {
 }
 
 export default function ReportCard({ report }: ReportCardProps) {
-  const [showSources, setShowSources] = useState(false);
-
   // Add detailed console logging
   console.log('Full report data:', report);
   console.log('Market data:', report.market_data);
@@ -216,72 +214,20 @@ export default function ReportCard({ report }: ReportCardProps) {
         </motion.div>
       )}
 
-      {report.market_data?.market_metrics?.socials && (
-        <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">Links & Socials</h3>
-          <div className="grid grid-cols-1 gap-4">
-            {report.market_data.market_metrics.websites?.map((website, i) => (
-              <motion.a
-                key={i}
-                variants={item}
-                href={website.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Website
-              </motion.a>
-            ))}
-            {report.market_data.market_metrics.socials?.map((social, i) => (
-              <motion.a
-                key={i}
-                variants={item}
-                href={`https://${social.platform}.com/${social.handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400"
-              >
-                <ExternalLink className="w-4 h-4" />
-                {social.platform}: {social.handle}
-              </motion.a>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
       <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
-        <button
-          onClick={() => setShowSources(!showSources)}
-          className="flex items-center justify-between w-full text-left text-gray-400 hover:text-white transition-colors duration-300"
-        >
-          <span className="text-lg font-semibold">Sources & References</span>
-          {showSources ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-        </button>
-        
-        {showSources && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mt-4 space-y-2"
+        <h3 className="text-xl font-semibold mb-4">Links & Analysis</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <motion.a
+            variants={item}
+            href={`https://dexscreener.com/solana/${report.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400"
           >
-            {report.sources.map((source, i) => (
-              <motion.a
-                key={i}
-                variants={item}
-                href={source}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400 transition-colors duration-300"
-              >
-                <ExternalLink className="w-4 h-4" />
-                {source}
-              </motion.a>
-            ))}
-          </motion.div>
-        )}
+            <ExternalLink className="w-4 h-4" />
+            View on DexScreener
+          </motion.a>
+        </div>
       </motion.div>
     </motion.div>
   );
