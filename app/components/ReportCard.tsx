@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Star, TrendingUp, Users, ChevronDown, ChevronUp, ExternalLink, Wallet, BarChart3, Activity } from 'lucide-react';
+import { Star, TrendingUp, Users, ChevronDown, ChevronUp, ExternalLink, Wallet, BarChart3, Activity, Link, ChartBar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TokenAnalysis } from '../types';
 
@@ -40,12 +40,28 @@ export default function ReportCard({ report }: ReportCardProps) {
       value: report.market_data?.market_metrics?.liquidity_score ? 
              `${Math.round(report.market_data.market_metrics.liquidity_score)}/100` : 
              'N/A',
-      subValue: report.market_data?.market_metrics?.confidence || null
+      subValue: report.market_data?.market_metrics?.liquidity_usd ? 
+                `$${new Intl.NumberFormat('en-US', {
+                  notation: 'compact',
+                  maximumFractionDigits: 1
+                }).format(report.market_data.market_metrics.liquidity_usd)}` : 
+                null
     },
     { 
-      icon: Wallet, 
-      label: 'Holders', 
-      value: report.market_data?.market_metrics?.holders?.total_holders || 'N/A' 
+      icon: ChartBar, 
+      label: '24h Volume', 
+      value: report.market_data?.market_metrics?.volume_24h ? 
+             `$${new Intl.NumberFormat('en-US', {
+               notation: 'compact',
+               maximumFractionDigits: 1
+             }).format(report.market_data.market_metrics.volume_24h)}` : 
+             '$0',
+      subValue: report.market_data?.market_metrics?.marketCap ? 
+                `MC: $${new Intl.NumberFormat('en-US', {
+                  notation: 'compact',
+                  maximumFractionDigits: 1
+                }).format(report.market_data.market_metrics.marketCap)}` : 
+                null
     }
   ];
 
@@ -196,6 +212,40 @@ export default function ReportCard({ report }: ReportCardProps) {
                 </div>
               </div>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {report.market_data?.market_metrics?.socials && (
+        <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
+          <h3 className="text-xl font-semibold mb-4">Links & Socials</h3>
+          <div className="grid grid-cols-1 gap-4">
+            {report.market_data.market_metrics.websites?.map((website, i) => (
+              <motion.a
+                key={i}
+                variants={item}
+                href={website.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Website
+              </motion.a>
+            ))}
+            {report.market_data.market_metrics.socials?.map((social, i) => (
+              <motion.a
+                key={i}
+                variants={item}
+                href={`https://${social.platform}.com/${social.handle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-cyan-500 hover:text-cyan-400"
+              >
+                <ExternalLink className="w-4 h-4" />
+                {social.platform}: {social.handle}
+              </motion.a>
+            ))}
           </div>
         </motion.div>
       )}

@@ -27,11 +27,41 @@ export interface TokenAnalysis {
   // Market Data
   market_data?: {
     price_usd: number;
-    market_cap: number;
-    volume_24h: number;
-    price_change_24h: number;
-    liquidity_usd: number;
-    holder_count: number;
+    market_metrics: {
+      liquidity_score: number;
+      confidence: string;
+      price_impact: {
+        buy: Record<string, number>;
+        sell: Record<string, number>;
+      };
+      last_trade: number | null;
+      price_history: {
+        last_buy: {
+          price: number;
+          timestamp: number;
+        };
+        last_sell: {
+          price: number;
+          timestamp: number;
+        };
+      } | null;
+      quoted_prices: {
+        buy: {
+          price: number;
+          timestamp: number;
+        };
+        sell: {
+          price: number;
+          timestamp: number;
+        };
+      } | null;
+      holders: number;
+      volume_24h: number;
+      price_trend: {
+        price_trend: 'up' | 'down' | 'neutral';
+        price_change_24h: number;
+      };
+    };
   };
 
   // Social Data
