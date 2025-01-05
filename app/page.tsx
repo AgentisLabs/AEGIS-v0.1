@@ -9,7 +9,12 @@ import { TokenAnalysis } from './types';
 import ChatBox from './components/ChatBox';
 import { BentoGrid, BentoGridItem } from './components/ui/bento-grid';
 import { motion } from 'framer-motion';
-import { IconClipboardCopy, IconFileBroken, IconSignature, IconTableColumn } from "@tabler/icons-react";
+import { 
+  IconGraph, 
+  IconBrain,
+  IconChartCandle,
+  IconCoin
+} from "@tabler/icons-react";
 import { BentoImage } from './components/ui/bento-image';
 
 // Skeleton component with dot pattern and mask
@@ -75,28 +80,28 @@ export default function TokenAnalyzer() {
       description: "Advanced AI-powered analysis of Solana tokens and their metrics.",
       header: <BentoImage src="/images/box-1.png" alt="Token Analysis Engine" />,
       className: "md:col-span-2",
-      icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
+      icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
       title: "Execute with natural language",
       description: "Wexley is a customizable trading assistant with a natural language interface.",
       header: <BentoImage src="/images/box-2.png" alt="Risk Assessment" />,
       className: "md:col-span-1",
-      icon: <IconFileBroken className="h-4 w-4 text-neutral-500" />,
+      icon: <IconBrain className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Social Sentiment Analysis",
-      description: "Each search scrapes hundreds of social media posts for a comprehensive sentiment report.",
+      title: "Market Intelligence",
+      description: "Deep insights into market trends and token performance.",
       header: <BentoImage src="/images/box-3.png" alt="Market Intelligence" />,
       className: "md:col-span-1",
-      icon: <IconSignature className="h-4 w-4 text-neutral-500" />,
+      icon: <IconChartCandle className="h-4 w-4 text-neutral-500" />,
     },
     {
       title: "AI Trading Assistant",
       description: "Interactive AI guidance for informed trading decisions.",
       header: <BentoImage src="/images/box-4.png" alt="AI Trading Assistant" />,
       className: "md:col-span-2",
-      icon: <IconTableColumn className="h-4 w-4 text-neutral-500" />,
+      icon: <IconCoin className="h-4 w-4 text-neutral-500" />,
     },
   ];
 
