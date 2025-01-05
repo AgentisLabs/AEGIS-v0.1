@@ -29,10 +29,10 @@ export default function ChatBox({ report }: ChatBoxProps) {
   }, [messages]);
 
   const exampleQueries = [
-    "Buy 3 SOL worth",
-    "Exit this position once we reach $5M mcap",
-    "What are your bull and bear cases for this token?",
     "Analyze this chart",
+    "Buy 1 SOL worth",
+    "Any recent publications or notable tweets?",
+    "What is your 1 week forecast for this token?",
     "Is this a good entry point?"
   ];
 
