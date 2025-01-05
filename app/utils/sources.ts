@@ -542,17 +542,23 @@ export async function generateTokenScore(data: {
     const prompt = `Generate a comprehensive risk analysis for this Solana token based on:
 
 MARKET METRICS:
-${JSON.stringify(marketAnalysis, null, 2)}
+${JSON.stringify({
+  ...marketAnalysis,
+  liquidity_details: {
+    total_liquidity_usd: marketAnalysis.liquidity_metrics.total_liquidity,
+    liquidity_score: marketAnalysis.liquidity_metrics.liquidity_score
+  }
+}, null, 2)}
 
 RECENT TWEETS:
 ${tweetTexts || 'No recent tweets found'}
 
-Please analyze both market data and social sentiment to provide an analysis in this JSON format:
+Please analyze both market data and social sentiment to provide an analysis in this JSON format. When discussing liquidity, reference both the total liquidity (${marketAnalysis.liquidity_metrics.total_liquidity} USD) and liquidity score (${marketAnalysis.liquidity_metrics.liquidity_score}/100):
 {
   "overall_score": <number 0-100>,
-  "summary": "<detailed risk assessment including specific metrics>",
-  "strengths": ["<specific positive aspects with numerical evidence>"],
-  "weaknesses": ["<specific risk factors with numerical evidence>"],
+  "summary": "<detailed risk assessment including specific metrics and actual liquidity values>",
+  "strengths": ["<specific positive aspects with numerical evidence including USD liquidity>"],
+  "weaknesses": ["<specific risk factors with numerical evidence including USD liquidity>"],
   "risk_assessment": {
     "level": "extreme|high|medium|low",
     "factors": ["<specific risk factors with metrics>"],
@@ -579,7 +585,7 @@ Please analyze both market data and social sentiment to provide an analysis in t
       messages: [
         {
           role: "system",
-          content: "You are a cryptocurrency risk analyst specializing in Solana tokens. Your analysis should be data-driven, skeptical, and focused on identifying potential risks and red flags. Always highlight concerning metrics and unusual patterns."
+          content: "You are a cryptocurrency risk analyst specializing in Solana meme tokens. Your analysis should be data-driven, and focused on identifying potential risks and red flags as well as potential opportunity and upside. Always highlight concerning metrics and unusual patterns."
         },
         {
           role: "user",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import SearchBar from './components/SearchBar';
 import ReportCard from './components/ReportCard';
 import Leaderboard from './components/Leaderboard';
@@ -55,31 +56,58 @@ export default function TokenAnalyzer() {
   };
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8">
-          Solana Token Analyzer
-        </h1>
-        
-        <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+    <main className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-black">
+      <div className="max-w-6xl mx-auto relative">
+        <div className="absolute top-0 right-0 flex items-center gap-2 text-gray-400">
+          <Image 
+            src="/agentislogo.jpg"
+            alt="Agentis Labs Logo"
+            width={24}
+            height={24}
+            className="rounded-full"
+          />
+          <a 
+            href="https://www.agentislabs.ai" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-sm font-medium hover:text-gray-300 transition-colors duration-200 cursor-pointer"
+          >
+            Agentis Labs
+          </a>
+        </div>
 
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 text-red-500 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            {currentReport && <ReportCard report={currentReport} />}
-          </div>
+        <div className="text-center mb-16 relative">
+          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
           
-          <div className="lg:col-span-1">
-            {currentReport && (
-              <div className="mt-8">
-                <ChatBox report={currentReport} />
-              </div>
-            )}
+          <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-4">
+            AEGIS
+          </h1>
+          <p className="text-xl text-gray-300 mb-4 font-light tracking-wide">
+            AI Enabled Gateway for Intelligent Solana Operation
+          </p>
+        </div>
+        
+        <div className="relative z-10">
+          <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-500/10 text-red-400 rounded-lg border border-red-500/20">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              {currentReport && <ReportCard report={currentReport} />}
+            </div>
+            
+            <div className="lg:col-span-1">
+              {currentReport && (
+                <div className="mt-8">
+                  <ChatBox report={currentReport} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

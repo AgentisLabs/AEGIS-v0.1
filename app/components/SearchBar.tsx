@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { PublicKey } from '@solana/web3.js';
+import { motion } from 'framer-motion';
+import { Search, Loader2 } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (address: string) => void;
@@ -8,59 +9,57 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
   const [address, setAddress] = useState('');
-  const [error, setError] = useState('');
-
-  const isValidSolanaAddress = (address: string): boolean => {
-    try {
-      new PublicKey(address);
-      return true;
-    } catch {
-      return false;
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!address.trim()) {
-      setError('Please enter a token address');
-      return;
+    if (address.trim()) {
+      onSearch(address.trim());
     }
-
-    if (!isValidSolanaAddress(address.trim())) {
-      setError('Please enter a valid Solana token address');
-      return;
-    }
-
-    onSearch(address.trim());
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        <div className="flex gap-2">
+    <motion.form 
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full relative z-20"
+    >
+      <div className="relative flex items-center max-w-2xl mx-auto">
+        <div className="relative flex-1">
+          <div className="absolute inset-0 bg-blue-500/10 rounded-lg blur-md -z-10" />
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter Solana token address..."
-            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
+            placeholder="Enter a Solana token address for analysis"
+            className="w-full px-6 py-4 bg-gray-900/50 border border-gray-700/50 rounded-lg pl-12 pr-4 
+                     text-white placeholder-gray-400 focus:outline-none focus:ring-2 
+                     focus:ring-blue-500/40 focus:border-transparent transition-all duration-200
+                     relative z-10"
           />
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold
-              ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
-          >
-            {isLoading ? 'Analyzing...' : 'Analyze'}
-          </button>
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
         </div>
-        {error && (
-          <p className="text-red-500 text-sm mt-1">{error}</p>
-        )}
-      </form>
-    </div>
+        
+        <button
+          type="submit"
+          disabled={isLoading || !address.trim()}
+          className={`ml-4 px-6 py-4 rounded-lg font-medium transition-all duration-200
+                    relative z-10
+                    ${isLoading 
+                      ? 'bg-gray-700 text-gray-300 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 hover:scale-105'
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                    focus:outline-none focus:ring-2 focus:ring-blue-500/40 shadow-lg`}
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            'Analyze'
+          )}
+        </button>
+      </div>
+    </motion.form>
   );
 }
