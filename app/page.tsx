@@ -36,23 +36,55 @@ export default function TokenAnalyzer() {
   const handleSearch = async (address: string) => {
     setIsLoading(true);
     setError(null);
+    
+    // Initialize report with loading state
+    setCurrentReport({ 
+      address,
+      loading: true,
+      market_data: null,
+      summary: "Fetching market data...",
+      strengths: [],
+      weaknesses: [],
+    } as TokenAnalysis);
 
     try {
-      const response = await fetch('/api/analyze-token', {
+      // First fetch: Quick market data from DexScreener
+      const marketDataResponse = await fetch('/api/market-data', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (marketDataResponse.ok) {
+        const { data: marketData } = await marketDataResponse.json();
+        // Update report with market data while keeping loading true
+        setCurrentReport(prev => ({
+          ...prev,
+          market_data: marketData,
+          summary: "Analyzing token...",
+          loading: true // Keep loading true for full analysis
+        }));
+      }
+
+      // Second fetch: Full analysis
+      const analysisResponse = await fetch('/api/analyze-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      });
+
+      if (!analysisResponse.ok) {
+        const error = await analysisResponse.json();
         throw new Error(error.error || 'Failed to analyze token');
       }
 
-      const { data } = await response.json();
-      setCurrentReport(data);
+      const { data } = await analysisResponse.json();
+      // Preserve the market data we already have if the full analysis doesn't include it
+      setCurrentReport(prev => ({ 
+        ...data, 
+        market_data: data.market_data || prev?.market_data,
+        loading: false 
+      }));
 
       // Update leaderboard if high score
       if (data.overall_score > 70) {
@@ -69,6 +101,7 @@ export default function TokenAnalyzer() {
     } catch (err) {
       console.error('Search error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setCurrentReport(null);
     } finally {
       setIsLoading(false);
     }

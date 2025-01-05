@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, TrendingUp, Users, ExternalLink, Wallet, BarChart3, Activity, Link, ChartBar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TokenAnalysis } from '../types';
@@ -10,11 +10,48 @@ interface ReportCardProps {
 }
 
 export default function ReportCard({ report }: ReportCardProps) {
-  // Add detailed console logging
-  console.log('Full report data:', report);
-  console.log('Market data:', report.market_data);
-  console.log('Market metrics:', report.market_data?.market_metrics);
-  console.log('Price trend:', report.market_data?.market_metrics?.price_trend);
+  const [loadingStates, setLoadingStates] = useState({
+    basicInfo: true,
+    marketData: true,
+    analysis: true,
+    social: true
+  });
+
+  // Update loading states when report changes
+  useEffect(() => {
+    // If we have market data but the full report is still loading
+    if (report.market_data && report.loading) {
+      setLoadingStates(prev => ({
+        ...prev,
+        basicInfo: false,
+        marketData: false,
+        analysis: true,
+        social: true
+      }));
+    } 
+    // If the full report is done loading
+    else if (!report.loading) {
+      setLoadingStates({
+        basicInfo: false,
+        marketData: false,
+        analysis: false,
+        social: false
+      });
+    }
+    // Initial loading state
+    else {
+      setLoadingStates({
+        basicInfo: true,
+        marketData: true,
+        analysis: true,
+        social: true
+      });
+    }
+  }, [report, report.market_data, report.loading]);
+
+  const LoadingSkeleton = () => (
+    <div className="h-8 bg-gray-800 animate-pulse rounded-lg" />
+  );
 
   const metrics = [
     { 
@@ -108,23 +145,32 @@ export default function ReportCard({ report }: ReportCardProps) {
     >
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h2 className="text-3xl font-bold mb-2">
-            {report.market_data?.market_metrics?.pair?.base_token?.symbol || 'Unknown Token'}
-            <span className="text-gray-400 text-lg ml-2">
-              {report.market_data?.market_metrics?.pair?.quote_token?.symbol && 
-               `/ ${report.market_data.market_metrics.pair.quote_token.symbol}`}
-            </span>
-          </h2>
-          <p className="text-sm font-mono text-gray-400 break-all">{report.address}</p>
-          {report.market_data?.market_metrics?.pair?.base_token?.name && (
-            <p className="text-sm text-gray-400 mt-1">
-              {report.market_data.market_metrics.pair.base_token.name}
-            </p>
+          {loadingStates.basicInfo ? (
+            <div className="space-y-4">
+              <LoadingSkeleton />
+              <LoadingSkeleton />
+            </div>
+          ) : (
+            <>
+              <h2 className="text-3xl font-bold mb-2">
+                {report.market_data?.market_metrics?.pair?.base_token?.symbol || 'Unknown Token'}
+                <span className="text-gray-400 text-lg ml-2">
+                  {report.market_data?.market_metrics?.pair?.quote_token?.symbol && 
+                   `/ ${report.market_data.market_metrics.pair.quote_token.symbol}`}
+                </span>
+              </h2>
+              <p className="text-sm font-mono text-gray-400 break-all">{report.address}</p>
+              {report.market_data?.market_metrics?.pair?.base_token?.name && (
+                <p className="text-sm text-gray-400 mt-1">
+                  {report.market_data.market_metrics.pair.base_token.name}
+                </p>
+              )}
+            </>
           )}
         </div>
         <motion.div
           initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          animate={{ scale: loadingStates.basicInfo ? 0 : 1 }}
           transition={{ delay: 0.3 }}
           className="text-right"
         >
@@ -132,7 +178,9 @@ export default function ReportCard({ report }: ReportCardProps) {
             report.overall_score >= 70 ? 'text-emerald-500' :
             report.overall_score >= 50 ? 'text-yellow-500' :
             'text-red-500'
-          }`}>{report.overall_score}</div>
+          }`}>
+            {loadingStates.basicInfo ? '-' : report.overall_score}
+          </div>
           <div className="text-gray-400">Trust Score</div>
         </motion.div>
       </div>
@@ -153,9 +201,15 @@ export default function ReportCard({ report }: ReportCardProps) {
               <metric.icon className="w-5 h-5 mr-2 text-gray-400" />
               <span className="text-gray-400 text-sm">{metric.label}</span>
             </div>
-            <div className="text-2xl font-bold">{metric.value}</div>
-            {metric.subValue && (
-              <div className="text-sm text-gray-400 mt-1">{metric.subValue}</div>
+            {loadingStates.marketData ? (
+              <div className="h-6 bg-gray-700 animate-pulse rounded" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{metric.value}</div>
+                {metric.subValue && (
+                  <div className="text-sm text-gray-400 mt-1">{metric.subValue}</div>
+                )}
+              </>
             )}
           </motion.div>
         ))}
@@ -163,38 +217,61 @@ export default function ReportCard({ report }: ReportCardProps) {
 
       <motion.div variants={container} initial="hidden" animate="show">
         <h3 className="text-xl font-semibold mb-4">Analysis Summary</h3>
-        <p className="text-gray-300 mb-6">{report.summary}</p>
+        {loadingStates.analysis ? (
+          <div className="space-y-2">
+            <LoadingSkeleton />
+            <LoadingSkeleton />
+          </div>
+        ) : (
+          <p className="text-gray-300 mb-6">{report.summary}</p>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-lg font-semibold mb-3 text-emerald-500">Strengths</h4>
             <div className="space-y-2">
-              {report.strengths.map((strength, i) => (
-                <motion.div
-                  key={i}
-                  variants={item}
-                  className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-emerald-500/50 transition-colors duration-300"
-                >
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-gray-300">{strength}</span>
-                </motion.div>
-              ))}
+              {loadingStates.analysis ? (
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 bg-gray-800/30 animate-pulse rounded-lg" />
+                ))
+              ) : (
+                report.strengths?.map((strength, i) => (
+                  <motion.div
+                    key={i}
+                    variants={item}
+                    className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-emerald-500/50 transition-colors duration-300"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-gray-300">{strength}</span>
+                  </motion.div>
+                )) || (
+                  <div className="text-gray-400">No strengths identified</div>
+                )
+              )}
             </div>
           </div>
 
           <div>
             <h4 className="text-lg font-semibold mb-3 text-red-500">Risk Factors</h4>
             <div className="space-y-2">
-              {report.weaknesses.map((weakness, i) => (
-                <motion.div
-                  key={i}
-                  variants={item}
-                  className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-red-500/50 transition-colors duration-300"
-                >
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-gray-300">{weakness}</span>
-                </motion.div>
-              ))}
+              {loadingStates.analysis ? (
+                [...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 bg-gray-800/30 animate-pulse rounded-lg" />
+                ))
+              ) : (
+                report.weaknesses?.map((weakness, i) => (
+                  <motion.div
+                    key={i}
+                    variants={item}
+                    className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-red-500/50 transition-colors duration-300"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-gray-300">{weakness}</span>
+                  </motion.div>
+                )) || (
+                  <div className="text-gray-400">No risk factors identified</div>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -209,42 +286,50 @@ export default function ReportCard({ report }: ReportCardProps) {
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Overall Risk</span>
                 <span className={`font-semibold px-3 py-1 rounded-full ${
+                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
                   report.risk_assessment?.level === 'extreme' ? 'bg-red-500/20 text-red-400' :
                   report.risk_assessment?.level === 'high' ? 'bg-orange-500/20 text-orange-400' :
                   report.risk_assessment?.level === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                   'bg-green-500/20 text-green-400'
                 }`}>
-                  {report.risk_assessment?.level?.charAt(0).toUpperCase() + report.risk_assessment?.level?.slice(1) || 'Unknown'}
+                  {loadingStates.analysis ? 'Fetching...' :
+                   report.risk_assessment?.level?.charAt(0).toUpperCase() + report.risk_assessment?.level?.slice(1) || 'Unknown'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Liquidity Risk</span>
                 <span className={`font-semibold px-3 py-1 rounded-full ${
+                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
                   report.risk_assessment?.liquidity_risk === 'high' ? 'bg-red-500/20 text-red-400' :
                   report.risk_assessment?.liquidity_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                   'bg-green-500/20 text-green-400'
                 }`}>
-                  {report.risk_assessment?.liquidity_risk?.charAt(0).toUpperCase() + report.risk_assessment?.liquidity_risk?.slice(1) || 'Unknown'}
+                  {loadingStates.analysis ? 'Fetching...' :
+                   report.risk_assessment?.liquidity_risk?.charAt(0).toUpperCase() + report.risk_assessment?.liquidity_risk?.slice(1) || 'Unknown'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Volatility Risk</span>
                 <span className={`font-semibold px-3 py-1 rounded-full ${
+                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
                   report.risk_assessment?.volatility_risk === 'high' ? 'bg-red-500/20 text-red-400' :
                   report.risk_assessment?.volatility_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                   'bg-green-500/20 text-green-400'
                 }`}>
-                  {report.risk_assessment?.volatility_risk?.charAt(0).toUpperCase() + report.risk_assessment?.volatility_risk?.slice(1) || 'Unknown'}
+                  {loadingStates.analysis ? 'Fetching...' :
+                   report.risk_assessment?.volatility_risk?.charAt(0).toUpperCase() + report.risk_assessment?.volatility_risk?.slice(1) || 'Unknown'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Manipulation Risk</span>
                 <span className={`font-semibold px-3 py-1 rounded-full ${
+                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
                   report.risk_assessment?.manipulation_risk === 'high' ? 'bg-red-500/20 text-red-400' :
                   report.risk_assessment?.manipulation_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                   'bg-green-500/20 text-green-400'
                 }`}>
-                  {report.risk_assessment?.manipulation_risk?.charAt(0).toUpperCase() + report.risk_assessment?.manipulation_risk?.slice(1) || 'Unknown'}
+                  {loadingStates.analysis ? 'Fetching...' :
+                   report.risk_assessment?.manipulation_risk?.charAt(0).toUpperCase() + report.risk_assessment?.manipulation_risk?.slice(1) || 'Unknown'}
                 </span>
               </div>
             </div>

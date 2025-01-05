@@ -28,11 +28,13 @@ interface MarketMetricsAssessment {
 
 export interface TokenAnalysis {
   address: string;
-  name: string;
-  symbol: string;
-  market_data: {
-    price_usd: number;
-    market_metrics: {
+  loading?: boolean;
+  overall_score?: number;
+  summary?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  market_data?: {
+    market_metrics?: {
       liquidity_score: number;
       price_trend: any;
       liquidity_usd: number;
@@ -43,7 +45,7 @@ export interface TokenAnalysis {
       holders: number;
       socials: any[];
       websites: string[];
-    };
+    }
   };
   social_metrics: {
     sentiment_score: number;
