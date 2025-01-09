@@ -21,8 +21,8 @@ export default function DocsPage() {
           <div>
             <h3 className="text-xl font-medium mb-2">Current Features</h3>
             <ul className="list-disc ml-6 mt-2">
-              <li>Real-time market data from DexScreener / Jupiter / Birdeye</li>
-              <li>Social sentiment analysis from Twitter</li>
+              <li>Real-time market data from DexScreener and Birdeye</li>
+              <li>Social sentiment analysis from Twitter and web scraping</li>
               <li>Risk assessment and scoring</li>
               <li>Liquidity analysis and manipulation detection</li>
             </ul>

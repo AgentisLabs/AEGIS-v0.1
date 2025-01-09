@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { WEXLEY_PERSONALITY } from '../lib/constants';
+import Image from 'next/image';
 
 interface ChatBoxProps {
   report: TokenAnalysis;
@@ -218,11 +219,15 @@ export default function ChatBox({ report }: ChatBoxProps) {
                 )}
               >
                 {msg.image && (
-                  <img 
-                    src={msg.image} 
-                    alt="Chart" 
-                    className="max-w-full h-auto rounded-lg mb-2"
-                  />
+                  <div className="relative w-full h-[200px]">
+                    <Image 
+                      src={msg.image} 
+                      alt="Chart" 
+                      className="rounded-lg mb-2"
+                      fill
+                      style={{ objectFit: 'contain' }}
+                    />
+                  </div>
                 )}
                 {msg.isUser ? msg.text : formatMessage(msg.text)}
               </div>
@@ -283,15 +288,19 @@ export default function ChatBox({ report }: ChatBoxProps) {
         
         {chartImage && (
           <div className="mt-2 relative">
-            <img 
-              src={chartImage} 
-              alt="Selected chart" 
-              className="max-w-full h-auto rounded-lg mb-2"
-            />
+            <div className="relative w-full h-[200px]">
+              <Image 
+                src={chartImage} 
+                alt="Selected chart" 
+                className="rounded-lg mb-2"
+                fill
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
             <button
               onClick={() => setChartImage(null)}
               className="absolute top-1 right-1 bg-red-500/80 text-white p-1 rounded-full 
-                       hover:bg-red-600 transition-colors duration-200"
+                hover:bg-red-600 transition-colors duration-200"
             >
               ×
             </button>
