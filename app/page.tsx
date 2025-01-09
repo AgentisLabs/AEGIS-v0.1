@@ -110,28 +110,28 @@ export default function TokenAnalyzer() {
   const features = [
     {
       title: "Token Analysis Engine",
-      description: "Advanced AI-powered analysis of Solana tokens and their metrics.",
+      description: "AI-powered analysis of Solana tokens and their metrics.",
       header: <BentoImage src="/images/box-1.png" alt="Token Analysis Engine" />,
       className: "md:col-span-2",
       icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Execute with natural language (beta)",
-      description: "Dexley is a trading assistant with a natural language interface.",
+      title: "Execute with natural language (coming soon)",
+      description: "Wexley facilitates blockchain operations with a natural language interface.",
       header: <BentoImage src="/images/box-2.png" alt="Risk Assessment" />,
       className: "md:col-span-1",
       icon: <IconBrain className="h-4 w-4 text-neutral-500" />,
     },
     {
       title: "Market Intelligence",
-      description: "Deep insights into market trends and token performance.",
+      description: "Deep insights into market trends, social sentiment & token performance.",
       header: <BentoImage src="/images/box-3.png" alt="Market Intelligence" />,
       className: "md:col-span-1",
       icon: <IconChartCandle className="h-4 w-4 text-neutral-500" />,
     },
     {
       title: "AI Trading Assistant",
-      description: "Interactive AI guidance for informed trading decisions.",
+      description: "Wexley is your all in one on-chain assistant. From chart analysis to executing advanced trading strategies",
       header: <BentoImage src="/images/box-4.png" alt="AI Trading Assistant" />,
       className: "md:col-span-2",
       icon: <IconCoin className="h-4 w-4 text-neutral-500" />,

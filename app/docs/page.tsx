@@ -11,97 +11,138 @@ export default function DocsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">Wexley AI Documentation</h1>
 
-      {/* Current Features */}
+      {/* Analysis Engine */}
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4">Current Features</h2>
+        <h2 className="text-2xl font-semibold mb-4">Analysis Engine</h2>
         <div className="space-y-4">
+          <p className="text-gray-600">
+            Our analysis engine combines on-chain data, market metrics, and social sentiment to provide comprehensive token analysis:
+          </p>
           <div>
-            <h3 className="text-xl font-medium mb-2">Token Analysis</h3>
-            <p className="text-gray-600">
-              Analyze any Solana token by providing its address. Our AI examines:
-            </p>
+            <h3 className="text-xl font-medium mb-2">Current Features</h3>
             <ul className="list-disc ml-6 mt-2">
-              <li>Price history and trends</li>
-              <li>Liquidity analysis</li>
-              <li>Social sentiment</li>
-              <li>Risk assessment</li>
+              <li>Real-time market data from DexScreener / Jupiter / Birdeye</li>
+              <li>Social sentiment analysis from Twitter</li>
+              <li>Risk assessment and scoring</li>
+              <li>Liquidity analysis and manipulation detection</li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-xl font-medium mb-2">AI Chat Assistant</h3>
-            <p className="text-gray-600">
-              Chat with our AI to get detailed insights about tokens and market conditions.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-medium mb-2">Usage Limits</h3>
-            <p className="text-gray-600">
-              Free tier includes:
-            </p>
+            <h3 className="text-xl font-medium mb-2">Roadmap</h3>
             <ul className="list-disc ml-6 mt-2">
-              <li>{DAILY_SEARCH_LIMIT} token analyses per day</li>
-              <li>{DAILY_MESSAGE_LIMIT} chat messages per day</li>
+              <li>Integration with traditional ML libraries (TensorFlow, PyTorch)</li>
+              <li>Custom model training for token classification</li>
+              <li>Advanced pattern recognition for market manipulation</li>
+              <li>Whale wallet tracking and analysis</li>
+              <li>Cross-chain analysis capabilities</li>
+              <li>Customizable analysis flows with user-defined data sources</li>
+              <li>Integration of custom APIs and data feeds</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* Roadmap */}
+      {/* Wexley AI Assistant */}
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4">Roadmap</h2>
+        <h2 className="text-2xl font-semibold mb-4">Meet Wexley</h2>
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Wexley is your on-chain AI assistant, powered by advanced language models and integrated with Solana's Agent Kit. 
+            He helps you analyze tokens, execute trades, and navigate the Solana ecosystem using natural language.
+          </p>
+          
+          <div>
+            <h3 className="text-xl font-medium mb-2">Current Capabilities</h3>
+            <ul className="list-disc ml-6 mt-2">
+              <li>Natural language token analysis</li>
+              <li>Market insights and recommendations</li>
+              <li>Risk assessment explanations</li>
+              <li>Technical analysis of price charts</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-medium mb-2">Upcoming Features</h3>
+            <ul className="list-disc ml-6 mt-2">
+              <li>Natural language trading via Jupiter</li>
+              <li>Custom agent creation platform</li>
+              <li>Personalized trading strategies</li>
+              <li>Multi-agent interactions</li>
+              <li>Integration with Solana Agent Kit</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Development Roadmap */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-semibold mb-4">Development Roadmap</h2>
         <div className="space-y-6">
           <div>
-            <h3 className="text-xl font-medium mb-2">Q2 2024</h3>
+            <h3 className="text-xl font-medium mb-2">Q1 2025</h3>
             <ul className="list-disc ml-6">
-              <li>Trading integration with Jupiter</li>
-              <li>Trade history tracking</li>
-              <li>Enhanced token analysis with ML models</li>
+              <li>Jupiter trading integration</li>
+              <li>Basic Solana Agent Kit integration</li>
+              <li>Enhanced ML-powered market analysis</li>
+              <li>Custom agent creation beta</li>
+              <li>Custom data source integration framework</li>
+              <li>Vector database integration for long-term memory</li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-xl font-medium mb-2">Q3 2024</h3>
+            <h3 className="text-xl font-medium mb-2">Q2 2025</h3>
             <ul className="list-disc ml-6">
-              <li>User accounts and authentication</li>
-              <li>Portfolio tracking</li>
-              <li>Custom alerts and notifications</li>
+              <li>Advanced agent customization platform</li>
+              <li>Multi-agent trading strategies</li>
+              <li>Custom ML model training interface</li>
+              <li>Portfolio management capabilities</li>
+              <li>User-defined analysis workflows</li>
+              <li>Incremental learning from user interactions</li>
+              <li>Workflow marketplace for analysis and trading strategies</li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-xl font-medium mb-2">Q4 2024</h3>
+            <h3 className="text-xl font-medium mb-2">Q3 2025</h3>
             <ul className="list-disc ml-6">
-              <li>Automated trading strategies</li>
-              <li>Advanced market analytics</li>
-              <li>Premium subscription tiers</li>
+              <li>Open source agent framework for custom agents</li>
+              <li>Advanced automated trading strategies</li>
+              <li>Cross-chain analysis and trading</li>
+              <li>Enterprise-grade agent deployment</li>
+              <li>Adaptive learning from trading outcomes</li>
+              <li>Personalized memory and learning patterns per agent</li>
+              <li>Multi-agent orchestration and collaboration</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* Technical Details */}
+      {/* Technical Stack */}
       <section>
-        <h2 className="text-2xl font-semibold mb-4">Technical Details</h2>
+        <h2 className="text-2xl font-semibold mb-4">Technical Stack</h2>
         <div className="space-y-4">
           <div>
-            <h3 className="text-xl font-medium mb-2">Technology Stack</h3>
+            <h3 className="text-xl font-medium mb-2">Core Technologies</h3>
             <ul className="list-disc ml-6">
               <li>Next.js 14 with App Router</li>
               <li>TypeScript</li>
-              <li>Tailwind CSS</li>
-              <li>OpenAI GPT-4</li>
-              <li>Supabase</li>
+              <li>OpenAI / Anthropic / Llama</li>
+              <li>Solana Agent Kit (in progress)</li>
+              <li>Jupiter SDK</li>
+              <li>TensorFlow.js (upcoming)</li>
             </ul>
           </div>
 
           <div>
             <h3 className="text-xl font-medium mb-2">Data Sources</h3>
             <ul className="list-disc ml-6">
-              <li>Jupiter API for price and liquidity data</li>
-              <li>Birdeye API for market data</li>
-              <li>Twitter API for social sentiment</li>
+              <li>DexScreener API</li>
+              <li>Jupiter API</li>
+              <li>Birdeye API</li>
+              <li>Twitter API</li>
+              <li>On-chain data via RPC</li>
             </ul>
           </div>
         </div>
