@@ -249,7 +249,7 @@ export default function DocsPage() {
       <section className="mb-12">
         <h3 className="text-2xl font-semibold mb-4">Get Involved</h3>
         <p className="text-gray-600">
-          Join us on this journey. Whether you&apos;re a developer, trader, or blockchain enthusiast, your feedback and participation will shape the future of Wexley AI. Together, we&apos;re building the tools that will define the next era of decentralized finance.
+          Join us on this journey. Whether you&apos;re a developer, trader, or blockchain enthusiast, your feedback and participation will shape the future of Wexley AI! Together, we&apos;re building the tools that will define the next era of decentralized finance.
         </p>
       </section>
     </div>
