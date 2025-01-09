@@ -116,8 +116,8 @@ export default function TokenAnalyzer() {
       icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Execute with natural language",
-      description: "Wexley is a customizable trading assistant with a natural language interface.",
+      title: "Execute with natural language (beta)",
+      description: "Dexley is a trading assistant with a natural language interface.",
       header: <BentoImage src="/images/box-2.png" alt="Risk Assessment" />,
       className: "md:col-span-1",
       icon: <IconBrain className="h-4 w-4 text-neutral-500" />,
@@ -141,30 +141,26 @@ export default function TokenAnalyzer() {
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-black">
       <div className="max-w-6xl mx-auto relative">
-        <div className="absolute top-0 right-0 flex items-center gap-2 text-gray-400">
-          <Image 
-            src="/agentislogo.jpg"
-            alt="Agentis Labs Logo"
-            width={24}
-            height={24}
-            className="rounded-full"
-          />
-          <a 
-            href="https://www.agentislabs.ai" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-sm font-medium hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-          >
-            Agentis Labs
-          </a>
+        <div className="absolute top-0 right-0">
+          <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <span className="text-sm font-medium text-blue-400">
+              🚀 Execute trades with Wexley - coming soon
+            </span>
+          </div>
         </div>
 
         <div className="text-center mb-16 relative">
           <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
           
-          <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-4">
-            AEGIS
-          </h1>
+          <div className="relative inline-flex items-center gap-2">
+            <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-4">
+              AEGIS
+            </h1>
+            <span className="absolute -right-12 top-0 px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/20">
+              BETA
+            </span>
+          </div>
+          
           <p className="text-xl text-gray-300 mb-4 font-light tracking-wide">
             AI Enabled Gateway for Intelligent Solana Operation
           </p>
