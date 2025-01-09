@@ -48,7 +48,7 @@ export default function DocsPage() {
         <h2 className="text-2xl font-semibold mb-4">Meet Wexley</h2>
         <div className="space-y-4">
           <p className="text-gray-600">
-            Wexley is your on-chain AI assistant, powered by advanced language models and integrated with Solana's Agent Kit. 
+            Wexley is your on-chain AI assistant, powered by advanced language models and integrated with Solana&apos;s Agent Kit. 
             He helps you analyze tokens, execute trades, and navigate the Solana ecosystem using natural language.
           </p>
           
@@ -142,6 +142,8 @@ export default function DocsPage() {
               <li>Jupiter API</li>
               <li>Birdeye API</li>
               <li>Twitter API</li>
+              <li>CoinGecko API</li>
+              <li>Exa API</li>
               <li>On-chain data via RPC</li>
             </ul>
           </div>
