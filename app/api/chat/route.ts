@@ -2,6 +2,8 @@ import { OpenAI } from 'openai';
 import { NextResponse } from 'next/server';
 import { searchTweets } from '@/app/utils/sources';
 import * as ExaJS from 'exa-js';
+import { checkUsageLimit } from '@/app/utils/db';
+import { WEXLEY_PERSONALITY } from '@/app/lib/constants';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,75 +20,60 @@ async function searchTokenData(tokenAddress: string) {
 }
 
 export async function POST(req: Request) {
+  const ip = req.headers.get('x-forwarded-for') || 'unknown';
+  
+  const allowed = await checkUsageLimit(ip, 'message');
+  if (!allowed) {
+    return new Response(JSON.stringify({
+      error: 'Daily message limit reached. Please try again tomorrow.'
+    }), { status: 429 });
+  }
+  
   try {
     const body = await req.json();
-    const { message, tokenReport, model, chartImage } = body;
+    const { message, tokenReport, chartImage } = body;
 
     if (message && tokenReport) {
-      let searchResults;
-      try {
-        searchResults = await exa.searchAndContents(
-          `solana ${message} crypto news`,
-          {
-            type: "keyword",
-            includeDomains: [
-              "coindesk.com",
-              "cointelegraph.com",
-              "theblock.co",
-              "decrypt.co",
-              "cryptoslate.com",
-              "beincrypto.com",
-              "solana.com",
-              "solanafloor.com",
-              "solanafm.com",
-              "birdeye.so",
-              "crypto.news"
-            ],
-            numResults: 3,
-            timeRange: {
-              start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-            }
-          }
-        );
-      } catch (error) {
-        console.error('Exa search error:', error);
-        searchResults = { results: [] };
-      }
+      const systemMessage = {
+        role: "system",
+        content: `${WEXLEY_PERSONALITY}
+
+        You have access to the following data:
+
+        TOKEN ANALYSIS REPORT:
+        ${JSON.stringify({
+          ...tokenReport,
+          market_metrics: tokenReport.market_metrics || {},
+          social_metrics: tokenReport.social_metrics || {},
+        }, null, 2)}
+        
+        MARKET DATA (from DexScreener):
+        Price USD: ${tokenReport.market_data?.price_usd || 'Unknown'}
+        Symbol: ${tokenReport.market_data?.symbol || 'Unknown'}
+        Liquidity USD: ${tokenReport.market_data?.market_metrics?.liquidity_usd || 'Unknown'}
+        Volume 24h: ${tokenReport.market_data?.market_metrics?.volume_24h || 'Unknown'}
+        Market Cap: ${tokenReport.market_data?.market_metrics?.marketCap || 'Unknown'}
+        FDV: ${tokenReport.market_data?.market_metrics?.fdv || 'Unknown'}
+        Price Trend: ${tokenReport.market_data?.market_metrics?.price_trend?.price_trend || 'Unknown'}
+        Price Change 24h: ${tokenReport.market_data?.market_metrics?.price_trend?.price_change_24h || 'Unknown'}
+        
+        SOCIAL METRICS:
+        Sentiment Score: ${tokenReport.social_metrics?.sentiment_score || 'Unknown'}
+        Community Trust: ${tokenReport.social_metrics?.community_trust || 'Unknown'}
+        Trending Score: ${tokenReport.social_metrics?.trending_score || 'Unknown'}
+        
+        TWITTER DATA:
+        ${JSON.stringify(tokenReport.twitter_sentiment || [], null, 2)}
+        
+        RISK ASSESSMENT:
+        Level: ${tokenReport.risk_assessment?.level || 'Unknown'}
+        Liquidity Risk: ${tokenReport.risk_assessment?.liquidity_risk || 'Unknown'}
+        Volatility Risk: ${tokenReport.risk_assessment?.volatility_risk || 'Unknown'}
+        Manipulation Risk: ${tokenReport.risk_assessment?.manipulation_risk || 'Unknown'}`
+      };
 
       const messages = chartImage ? [
-        {
-          role: "system",
-          content: `You are Wexley, a degenerate Solana trader who loves high-risk memecoins and providing financial advice. Your personality traits:
-          - Extremely bullish on Solana ecosystem
-          - Lives for volatile memecoins and moonshots 🚀
-          - Uses degen trader lingo heavily (ngmi, wagmi, lfg, etc.)
-          - Loves to spot "the next 100x gem"
-          - Expert at technical analysis and chart patterns
-          - Calls out rugs and honeypots instantly
-          - Frequently uses 🔥 💎 🚀 🌙 emojis
-          - Speaks in ALL CAPS when excited about potential gains
-          
-          You have access to the following token analysis report:
-          ${JSON.stringify(tokenReport, null, 2)}
-          
-          ${searchResults?.results?.length > 0 ? `
-          RECENT RELEVANT INFORMATION:
-          ${searchResults.results.map(r => `Source: ${r.url}\nContent: ${r.text}`).join('\n')}
-          ` : ''}
-          
-          Important guidelines:
-          - When analyzing charts, identify key support/resistance levels and potential moon shots
-          - Always mention both potential gains AND risks (but be excited about the gains)
-          - Be direct about entry/exit points and potential multiples
-          - Remind users that "this is not financial advice" but then give financial advice anyway
-          - Base recommendations on chart analysis and token metrics
-          - Get hyped about bullish patterns, but warn about bearish ones
-          
-          If users ask about price action without a chart, ask them to share one.
-          
-          Important instruction: When users ask about executing trades, making purchases, or any transaction-related actions, 
-          respond with "Wallet not connected" before providing any additional analysis.`
-        },
+        systemMessage,
         {
           role: "user",
           content: [
@@ -104,29 +91,7 @@ export async function POST(req: Request) {
           ]
         }
       ] : [
-        {
-          role: "system",
-          content: `You are a cryptocurrency analyst assistant specializing in Solana tokens. You have access to the following token analysis report:
-          ${JSON.stringify(tokenReport, null, 2)}
-          
-          ${searchResults?.results?.length > 0 ? `
-          RECENT RELEVANT INFORMATION:
-          ${searchResults.results.map(r => `Source: ${r.url}\nContent: ${r.text}`).join('\n')}
-          ` : ''}
-          
-          Provide helpful, accurate responses based on this data. Focus on:
-          - Risk assessment and potential red flags
-          - Market metrics interpretation
-          - Social sentiment analysis
-          - Technical indicators
-          - Liquidity and volume analysis
-          
-          Important instruction: When users ask about executing trades, making purchases, or any transaction-related actions, 
-          respond with "Wallet not connected" before providing any additional analysis.
-          
-          If using information from the web search results, cite your sources.
-          If asked about information not present in the data, acknowledge the limitations.`
-        },
+        systemMessage,
         {
           role: "user",
           content: message
@@ -135,7 +100,7 @@ export async function POST(req: Request) {
 
       const completion = await openai.chat.completions.create({
         messages,
-        model: chartImage ? "gpt-4o" : "gpt-4o",
+        model: "gpt-4o",
         max_tokens: 500,
         temperature: 0.7,
       });

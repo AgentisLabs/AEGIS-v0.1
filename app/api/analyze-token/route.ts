@@ -1,7 +1,17 @@
+import { checkUsageLimit } from '@/app/utils/db';
 import { searchTokenInfo } from '@/app/utils/sources';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  
+  const allowed = await checkUsageLimit(ip, 'search');
+  if (!allowed) {
+    return new Response(JSON.stringify({
+      error: 'Daily search limit reached. Please try again tomorrow.'
+    }), { status: 429 });
+  }
+  
   try {
     const { address } = await request.json();
     

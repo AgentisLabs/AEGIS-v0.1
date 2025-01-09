@@ -1,165 +1,101 @@
 import { supabase } from '../lib/supabase';
-import { TokenAnalysis } from '../types';
 
-export async function getTokenAnalysis(address: string) {
+export const DAILY_SEARCH_LIMIT = 10;
+export const DAILY_MESSAGE_LIMIT = 50;
+
+interface UsageData {
+  searches_count: number;
+  messages_count: number;
+  last_reset: string;
+}
+
+function isNewDay(lastReset: string): boolean {
+  const lastResetDate = new Date(lastReset);
+  const now = new Date();
+  return lastResetDate.getUTCDate() !== now.getUTCDate() ||
+         lastResetDate.getUTCMonth() !== now.getUTCMonth() ||
+         lastResetDate.getUTCFullYear() !== now.getUTCFullYear();
+}
+
+export async function checkUsageLimit(
+  ipAddress: string,
+  type: 'search' | 'message'
+): Promise<boolean> {
   try {
-    if (!address) {
-      console.error('No token address provided');
-      return null;
-    }
-
+    // Get current usage
     const { data, error } = await supabase
-      .from('token_analyses')
+      .from('daily_usage')
       .select('*')
-      .eq('address', address.toLowerCase())
+      .eq('ip_address', ipAddress)
       .single();
 
-    // If no data found, return null without throwing error
-    if (error?.code === 'PGRST116') {
-      return null;
+    const usage = data as UsageData | null;
+
+    // If no record exists or it's a new day, create/reset the counter
+    if (!usage || isNewDay(usage.last_reset)) {
+      const { error: upsertError } = await supabase
+        .from('daily_usage')
+        .upsert({
+          ip_address: ipAddress,
+          searches_count: type === 'search' ? 1 : 0,
+          messages_count: type === 'message' ? 1 : 0,
+          last_reset: new Date().toISOString()
+        });
+
+      if (upsertError) throw upsertError;
+      return true;
     }
 
-    if (error) {
-      console.error('Error fetching token analysis:', error);
-      return null;
-    }
+    // Check if limit reached
+    const currentCount = type === 'search' ? usage.searches_count : usage.messages_count;
+    const limit = type === 'search' ? DAILY_SEARCH_LIMIT : DAILY_MESSAGE_LIMIT;
 
-    // Check if analysis needs refresh (older than 24h)
-    if (data?.last_updated && 
-        new Date(data.last_updated) < new Date(Date.now() - 24 * 60 * 60 * 1000)) {
-      console.log('Analysis is outdated, needs refresh');
-      return null;
-    }
-
-    return data as TokenAnalysis;
-  } catch (error) {
-    console.error('Error in getTokenAnalysis:', error);
-    return null;
-  }
-}
-
-export async function saveTokenAnalysis(address: string, analysisData: Partial<TokenAnalysis>) {
-  try {
-    const { data, error } = await supabase
-      .from('token_analyses')
-      .upsert({
-        address: address.toLowerCase(),
-        ...analysisData,
-        last_updated: new Date().toISOString()
-      }, {
-        onConflict: 'address',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving token analysis:', error);
-      throw error;
-    }
-
-    // If score is high enough, update leaderboard
-    if (analysisData.overall_score && analysisData.overall_score > 70) {
-      await updateLeaderboard(address, data as TokenAnalysis);
-    }
-
-    return data as TokenAnalysis;
-  } catch (error) {
-    console.error('Error in saveTokenAnalysis:', error);
-    throw error;
-  }
-}
-
-export async function logSearch(address: string, ipAddress?: string) {
-  try {
-    // Log to search_history
-    const { error: searchError } = await supabase
-      .from('search_history')
-      .insert({
-        address: address.toLowerCase(),
-        ip_address: ipAddress,
-        user_agent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
-        success: true
-      });
-
-    if (searchError) {
-      console.error('Error logging search:', searchError);
-    }
-
-    // Get total search count
-    const { count } = await supabase
-      .from('search_history')
-      .select('*', { count: 'exact', head: true })
-      .eq('address', address.toLowerCase());
-
-    return count || 0;
-  } catch (error) {
-    console.error('Error in logSearch:', error);
-    return 0;
-  }
-}
-
-export async function updateLeaderboard(address: string, analysis: TokenAnalysis) {
-  try {
-    const { error } = await supabase
-      .from('token_leaderboard')
-      .upsert({
-        address: address.toLowerCase(),
-        symbol: analysis.symbol,
-        name: analysis.name,
-        overall_score: analysis.overall_score,
-        times_searched: analysis.times_searched,
-        last_updated: new Date().toISOString()
-      });
-
-    if (error) {
-      console.error('Error updating leaderboard:', error);
-    }
-
-    // Update ranks for all tokens in leaderboard
-    await supabase.rpc('update_leaderboard_ranks');
-
-  } catch (error) {
-    console.error('Error in updateLeaderboard:', error);
-  }
-}
-
-export async function getLeaderboard(limit = 10) {
-  try {
-    const { data, error } = await supabase
-      .from('token_leaderboard')
-      .select('*')
-      .order('overall_score', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error fetching leaderboard:', error);
-      return [];
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error in getLeaderboard:', error);
-    return [];
-  }
-}
-
-// Helper function to check if a token exists
-export async function tokenExists(address: string): Promise<boolean> {
-  try {
-    const { count, error } = await supabase
-      .from('token_analyses')
-      .select('*', { count: 'exact', head: true })
-      .eq('address', address.toLowerCase());
-
-    if (error) {
-      console.error('Error checking token existence:', error);
+    if (currentCount >= limit) {
       return false;
     }
 
-    return (count || 0) > 0;
+    // Increment counter
+    const { error: updateError } = await supabase
+      .from('daily_usage')
+      .update({
+        [type === 'search' ? 'searches_count' : 'messages_count']: currentCount + 1
+      })
+      .eq('ip_address', ipAddress);
+
+    if (updateError) throw updateError;
+    return true;
+
   } catch (error) {
-    console.error('Error in tokenExists:', error);
+    console.error('Usage limit error:', error);
     return false;
+  }
+}
+
+export async function getCurrentUsage(ipAddress: string): Promise<{
+  searches: number;
+  messages: number;
+  searchLimit: number;
+  messageLimit: number;
+}> {
+  try {
+    const { data } = await supabase
+      .from('daily_usage')
+      .select('*')
+      .eq('ip_address', ipAddress)
+      .single();
+
+    return {
+      searches: data?.searches_count || 0,
+      messages: data?.messages_count || 0,
+      searchLimit: DAILY_SEARCH_LIMIT,
+      messageLimit: DAILY_MESSAGE_LIMIT
+    };
+  } catch (error) {
+    return {
+      searches: 0,
+      messages: 0,
+      searchLimit: DAILY_SEARCH_LIMIT,
+      messageLimit: DAILY_MESSAGE_LIMIT
+    };
   }
 }

@@ -149,6 +149,19 @@ export default function TokenAnalyzer() {
           </div>
         </div>
 
+        {!currentReport && (
+          <div className="absolute top-0 left-0">
+            <a 
+              href="/docs" 
+              className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+            >
+              <span className="text-sm font-medium text-blue-400">
+                📚
+              </span>
+            </a>
+          </div>
+        )}
+
         <div className="text-center mb-16 relative">
           <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
           

@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { WEXLEY_PERSONALITY } from '../lib/constants';
 
 interface ChatBoxProps {
   report: TokenAnalysis;
@@ -74,7 +75,9 @@ export default function ChatBox({ report }: ChatBoxProps) {
         body: JSON.stringify({
           message,
           tokenReport: report,
-          chartImage: chartImage
+          chartImage: chartImage,
+          messageHistory: messages,
+          personality: WEXLEY_PERSONALITY
         }),
       });
 
