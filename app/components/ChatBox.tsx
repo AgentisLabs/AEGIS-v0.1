@@ -17,9 +17,16 @@ interface ChatBoxProps {
 
 type AIModel = 'gpt-4' | 'claude-3' | 'xai';
 
+type Message = {
+  text: string;
+  isUser: boolean;
+  image?: string;
+  isStreaming?: boolean;
+};
+
 export default function ChatBox({ report }: ChatBoxProps) {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean; image?: string }>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<AIModel>('gpt-4');
   const [executionEnabled, setExecutionEnabled] = useState(false);
@@ -29,12 +36,25 @@ export default function ChatBox({ report }: ChatBoxProps) {
   const [showModal, setShowModal] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [showTradingPanel, setShowTradingPanel] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (isLoading && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage.isUser) {
+        const loadingDots = setInterval(() => {
+          setStreamingText(prev => prev.length >= 3 ? '' : prev + '.');
+        }, 500);
+        return () => clearInterval(loadingDots);
+      }
+    }
+  }, [isLoading, messages]);
 
   const exampleQueries = [
     "Analyze this chart",
@@ -68,6 +88,12 @@ export default function ChatBox({ report }: ChatBoxProps) {
         image: chartImage || undefined 
       }]);
       
+      setMessages(prev => [...prev, { 
+        text: '', 
+        isUser: false,
+        isStreaming: true 
+      }]);
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -87,8 +113,14 @@ export default function ChatBox({ report }: ChatBoxProps) {
       }
 
       const data = await response.json();
-      setMessages(prev => [...prev, { text: data.response, isUser: false }]);
-      setChartImage(null); // Clear the image after sending
+      
+      setMessages(prev => prev.map((msg, index) => {
+        if (index === prev.length - 1) {
+          return { text: data.response, isUser: false, isStreaming: false };
+        }
+        return msg;
+      }));
+      setChartImage(null);
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, { 
@@ -229,7 +261,19 @@ export default function ChatBox({ report }: ChatBoxProps) {
                     />
                   </div>
                 )}
-                {msg.isUser ? msg.text : formatMessage(msg.text)}
+                {msg.isUser ? msg.text : (
+                  <>
+                    {msg.isStreaming ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-75" />
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-150" />
+                      </div>
+                    ) : (
+                      formatMessage(msg.text)
+                    )}
+                  </>
+                )}
               </div>
             ))
           )}

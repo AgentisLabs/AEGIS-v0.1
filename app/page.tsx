@@ -141,7 +141,7 @@ export default function TokenAnalyzer() {
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-black">
       <div className="max-w-6xl mx-auto relative">
-        <div className="absolute top-0 right-0">
+        <div className="absolute top-0 right-0 z-10 hidden md:block">
           <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <span className="text-sm font-medium text-blue-400">
               🚀 Execute trades with Wexley - coming soon
@@ -162,7 +162,7 @@ export default function TokenAnalyzer() {
           </div>
         )}
 
-        <div className="text-center mb-16 relative">
+        <div className="text-center mb-16 relative pt-12 md:pt-0">
           <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
           
           <div className="relative inline-flex items-center gap-2">
@@ -173,8 +173,16 @@ export default function TokenAnalyzer() {
               BETA
             </span>
           </div>
+
+          <div className="md:hidden mt-4">
+            <div className="inline-block px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <span className="text-sm font-medium text-blue-400">
+                🚀 Execute trades with Wexley - coming soon
+              </span>
+            </div>
+          </div>
           
-          <p className="text-xl text-gray-300 mb-4 font-light tracking-wide">
+          <p className="text-xl text-gray-300 mb-4 font-light tracking-wide mt-4">
             AI Enabled Gateway for Intelligent Solana Operation
           </p>
         </div>
