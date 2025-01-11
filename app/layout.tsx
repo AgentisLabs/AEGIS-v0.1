@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'AEGIS | Solana AI Trading Platform',
     description: 'AI-powered gateway for intelligent Solana operations, featuring advanced token analysis and automated trading strategies',
-    url: 'https://aegis.trade',
+    url: 'https://aegisol.xyz',
     siteName: 'AEGIS',
     images: [
       {
