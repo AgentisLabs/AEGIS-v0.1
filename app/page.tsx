@@ -116,7 +116,7 @@ export default function TokenAnalyzer() {
       icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Execute with natural language (coming soon)",
+      title: "Execute with natural language (beta)",
       description: "Wexley facilitates blockchain operations with a natural language interface.",
       header: <BentoImage src="/images/box-2.png" alt="Risk Assessment" />,
       className: "md:col-span-1",
