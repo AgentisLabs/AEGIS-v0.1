@@ -31,7 +31,7 @@ export default function DocsPage() {
       <section className="mb-12">
         <h3 className="text-2xl font-semibold mb-4">1. Introduction</h3>
         <p className="text-gray-600 leading-relaxed">
-          The cryptocurrency market's complexity has created a significant barrier to entry for many potential participants. AEGIS addresses this challenge by introducing an AI-powered terminal that serves as an intelligent gateway to the Solana ecosystem. By combining natural language processing with collaborative AI agents, AEGIS enables users to execute complex operations through simple conversations.
+          The cryptocurrency market&apos;s complexity has created a significant barrier to entry for many potential participants. AEGIS addresses this challenge by introducing an AI-powered terminal that serves as an intelligent gateway to the Solana ecosystem. By combining natural language processing with collaborative AI agents, AEGIS enables users to execute complex operations through simple conversations.
         </p>
       </section>
 
@@ -65,7 +65,7 @@ export default function DocsPage() {
           <div>
             <h4 className="text-xl font-medium mb-3">2.3 Blockchain Integration Layer</h4>
             <ul className="list-disc ml-6 text-gray-600 space-y-2">
-              <li>Direct integration with Solana's programming model</li>
+              <li>Direct integration with Solana&apos;s programming model</li>
               <li>Custom instruction optimization for reduced latency</li>
               <li>Parallel transaction processing capabilities</li>
               <li>Multi-program interaction management</li>
@@ -215,27 +215,12 @@ export default function DocsPage() {
 
           <div>
             <h4 className="text-xl font-medium mb-3">4.2 AI Infrastructure</h4>
-            <div className="space-y-4">
-              <div>
-                <h5 className="text-lg font-medium mb-2 text-gray-400">Large Language Models</h5>
-                <ul className="list-disc ml-6 text-gray-600 space-y-2">
-                  <li>Custom-trained financial models</li>
-                  <li>Domain-specific instruction tuning</li>
-                  <li>Multi-model orchestration</li>
-                  <li>Continuous learning pipeline</li>
-                </ul>
-              </div>
-
-              <div>
-                <h5 className="text-lg font-medium mb-2 text-gray-400">Vector Databases</h5>
-                <ul className="list-disc ml-6 text-gray-600 space-y-2">
-                  <li>Historical pattern storage</li>
-                  <li>Fast similarity search</li>
-                  <li>Temporal pattern recognition</li>
-                  <li>Efficient context retrieval</li>
-                </ul>
-              </div>
-            </div>
+            <ul className="list-disc ml-6 text-gray-600 space-y-2">
+              <li>Custom-trained financial models</li>
+              <li>Domain-specific instruction tuning</li>
+              <li>Multi-model orchestration</li>
+              <li>Continuous learning pipeline</li>
+            </ul>
           </div>
 
           <div>
@@ -276,7 +261,7 @@ export default function DocsPage() {
               Users can describe trading strategies in natural language, which AEGIS converts into executable programs:
             </p>
             <div className="bg-gray-800 rounded-lg p-4 font-mono text-sm text-gray-300">
-              "Buy SOL when Bitcoin's 4-hour RSI drops below 30 and SOL's price is above its 200-day moving average"
+              &quot;Buy SOL when Bitcoin&apos;s 4-hour RSI drops below 30 and SOL&apos;s price is above its 200-day moving average&quot;
             </div>
           </div>
 
@@ -397,7 +382,7 @@ export default function DocsPage() {
       <section className="mb-12">
         <h3 className="text-2xl font-semibold mb-4">9. Conclusion</h3>
         <p className="text-gray-600 leading-relaxed">
-          AEGIS represents a paradigm shift in how users interact with the Solana blockchain. By combining natural language processing with collaborative AI agents, we're creating a more accessible and powerful gateway to decentralized finance. Our platform democratizes access to sophisticated trading strategies while maintaining the security and efficiency expected by institutional users.
+          AEGIS represents a paradigm shift in how users interact with the Solana blockchain. By combining natural language processing with collaborative AI agents, we&apos;re creating a more accessible and powerful gateway to decentralized finance. Our platform democratizes access to sophisticated trading strategies while maintaining the security and efficiency expected by institutional users.
         </p>
       </section>
 
@@ -412,7 +397,7 @@ export default function DocsPage() {
           <li>Community-driven strategy development</li>
         </ul>
         <p className="text-gray-600 leading-relaxed mt-4">
-          The future of blockchain interaction lies in making complex operations accessible through natural language while maintaining the security and efficiency of programmatic execution. AEGIS is at the forefront of this revolution, providing a platform that grows and evolves with its users' needs.
+          The future of blockchain interaction lies in making complex operations accessible through natural language while maintaining the security and efficiency of programmatic execution. AEGIS is at the forefront of this revolution, providing a platform that grows and evolves with its users&apos; needs.
         </p>
       </section>
     </div>
