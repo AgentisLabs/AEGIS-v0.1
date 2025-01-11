@@ -9,18 +9,18 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Prop-View - Prop Firm Insights",
-  description: "AI-powered proprietary trading firm analysis tool",
+  title: "AEGIS | AI-Enabled Gateway for Intelligent Solana Operations",
+  description: "AI-powered Solana token analysis and execution platform",
   icons: {
     icon: '/icon.png',
     shortcut: '/favicon.ico',
     apple: '/apple-icon.png',
   },
   openGraph: {
-    title: 'Aegis AI | Solana Token Analysis',
-    description: 'AI-powered Solana token analysis and risk assessment',
-    url: 'https://your-domain.com',
-    siteName: 'Aegis AI',
+    title: 'AEGIS | Solana AI Trading Platform',
+    description: 'AI-powered gateway for intelligent Solana operations, featuring advanced token analysis and automated trading strategies',
+    url: 'https://aegis.trade',
+    siteName: 'AEGIS',
     images: [
       {
         url: '/opengraph-image.png',
@@ -33,8 +33,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Aegis AI | Solana Token Analysis',
-    description: 'AI-powered Solana token analysis and risk assessment',
+    title: 'AEGIS | Solana AI Trading Platform',
+    description: 'AI-powered gateway for intelligent Solana operations, featuring advanced token analysis and automated trading strategies',
     images: ['/opengraph-image.png'],
   },
 };
