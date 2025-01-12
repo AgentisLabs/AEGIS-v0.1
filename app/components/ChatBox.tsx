@@ -79,8 +79,8 @@ export default function ChatBox({ report }: ChatBoxProps) {
 
   const exampleQueries = [
     "Analyze this chart",
-    "Buy 1 SOL worth",
-    "Any recent publications or notable tweets?",
+    "Buy 0.5 SOL worth",
+    "Sell 50% of holdings",
     "What is your 1 week forecast for this token?",
     "Is this a good entry point?"
   ];
@@ -101,6 +101,34 @@ export default function ChatBox({ report }: ChatBoxProps) {
     e.preventDefault();
     if (!message.trim() || isLoading) return;
 
+    // Parse trade commands
+    const buyMatch = message.match(/buy\s+([\d.]+)\s*sol/i);
+    const sellMatch = message.match(/sell\s+([\d.]+)%/i);
+
+    if ((buyMatch || sellMatch) && !connected) {
+      setMessages(prev => [...prev, {
+        text: "Please connect your wallet first to execute trades.",
+        isUser: false
+      }]);
+      setShowModal(true);
+      return;
+    }
+
+    if (buyMatch && connected) {
+      const amount = buyMatch[1];
+      setMessages(prev => [...prev, { text: message, isUser: true }]);
+      await executeTrade('buy', amount);
+      return;
+    }
+
+    if (sellMatch && connected) {
+      const percentage = parseFloat(sellMatch[1]);
+      setMessages(prev => [...prev, { text: message, isUser: true }]);
+      await executeTrade('sell', percentage);
+      return;
+    }
+
+    // Continue with normal chat processing if no trade command detected
     try {
       setIsLoading(true);
       setMessages(prev => [...prev, { 
@@ -220,7 +248,7 @@ export default function ChatBox({ report }: ChatBoxProps) {
           (parseFloat(amount as string) * 1e9).toString() : // Convert SOL to lamports
           sellAmount.toString(), // Use calculated token amount for selling
         from_address: wallet.publicKey?.toString() || '',
-        slippage: slippage // Use the custom slippage value
+        slippage: slippage
       });
 
       console.log('Requesting quote with params:', Object.fromEntries(queryParams.entries()));
@@ -343,10 +371,10 @@ export default function ChatBox({ report }: ChatBoxProps) {
   };
 
   useEffect(() => {
-    if (tradeModal.isOpen && tradeModal.type === 'sell') {
+    if (wallet.publicKey && report.address) {
       fetchUserBalance();
     }
-  }, [tradeModal.isOpen, tradeModal.type]);
+  }, [wallet.publicKey, report.address]);
 
   useEffect(() => {
     if (executionEnabled) {
