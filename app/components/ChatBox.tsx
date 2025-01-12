@@ -117,11 +117,14 @@ export default function ChatBox({ report }: ChatBoxProps) {
     e.preventDefault();
     if (!message.trim() || isLoading) return;
 
-    // Parse trade commands
+    // Enhanced trade command parsing
     const buyMatch = message.match(/buy\s+([\d.]+)\s*sol/i);
     const sellMatch = message.match(/sell\s+([\d.]+)%/i);
+    const sellHalfMatch = message.toLowerCase().match(/sell\s*(half|50|fifty)/);
+    const sellAllMatch = message.toLowerCase().match(/sell\s*(all|everything|100)/);
 
-    if ((buyMatch || sellMatch) && !connected) {
+    // Check wallet connection for any trade command
+    if ((buyMatch || sellMatch || sellHalfMatch || sellAllMatch) && !connected) {
       setMessages(prev => [...prev, {
         text: "Please connect your wallet first to execute trades.",
         isUser: false
@@ -130,6 +133,15 @@ export default function ChatBox({ report }: ChatBoxProps) {
       return;
     }
 
+    // Handle sell half/all commands
+    if (connected && (sellHalfMatch || sellAllMatch)) {
+      const percentage = sellHalfMatch ? 50 : 100;
+      setMessages(prev => [...prev, { text: message, isUser: true }]);
+      await executeTrade('sell', percentage);
+      return;
+    }
+
+    // Existing trade command handling
     if (buyMatch && connected) {
       const amount = buyMatch[1];
       setMessages(prev => [...prev, { text: message, isUser: true }]);
