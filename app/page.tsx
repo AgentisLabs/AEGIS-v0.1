@@ -17,6 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { BentoImage } from './components/ui/bento-image';
 import WalletButton from './components/WalletButton';
+import { cn } from '@/lib/utils';
 
 // Skeleton component with dot pattern and mask
 const Skeleton = () => (
@@ -33,6 +34,8 @@ export default function TokenAnalyzer() {
   const [error, setError] = useState<string | null>(null);
   const [currentReport, setCurrentReport] = useState<TokenAnalysis | null>(null);
   const [leaderboard, setLeaderboard] = useState<TokenAnalysis[]>([]);
+  const [searchMode, setSearchMode] = useState<'lite' | 'pro'>('lite');
+  const [showProModal, setShowProModal] = useState(false);
 
   const handleSearch = async (address: string) => {
     setIsLoading(true);
@@ -111,14 +114,14 @@ export default function TokenAnalyzer() {
   const features = [
     {
       title: "Token Analysis Engine",
-      description: "Advanced AI-powered analysis of Solana tokens and their metrics.",
+      description: "AI-powered analysis of Solana tokens and their metrics.",
       header: <BentoImage src="/images/box-1.png" alt="Token Analysis Engine" />,
       className: "md:col-span-2",
       icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Latency Free Execution",
-      description: "Execute trades rapidly using GMGN or Jupiter.",
+      title: "Natural Lnaguage Execution",
+      description: "Execute trades with natural language by talking to Wexley.",
       header: <BentoImage src="/images/box-2.png" alt="Natural Language Trading" />,
       className: "md:col-span-1",
       icon: <IconBrain className="h-4 w-4 text-neutral-500" />,
@@ -131,8 +134,8 @@ export default function TokenAnalyzer() {
       icon: <IconChartCandle className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Custom Trading Agents",
-      description: "Create and deploy your own AI trading agents with personalized strategies.",
+      title: "Customizeable Analysis",
+      description: "Create and deploy your own analysis workflow with customizable data sources and personalized trading strategies.",
       header: <BentoImage src="/images/box-4.png" alt="Custom Trading Agents" />,
       className: "md:col-span-2",
       icon: <IconCoin className="h-4 w-4 text-neutral-500" />,
@@ -187,7 +190,68 @@ export default function TokenAnalyzer() {
         </div>
         
         <div className="relative z-10">
-          <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+          <div className="flex items-center justify-center">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">
+                  Advanced Analysis
+                </span>
+                <button
+                  onClick={() => {
+                    if (searchMode === 'lite') {
+                      setShowProModal(true);
+                    }
+                  }}
+                  className={cn(
+                    "relative w-12 h-6 rounded-full transition-colors duration-200",
+                    searchMode === 'pro' 
+                      ? "bg-blue-500" 
+                      : "bg-gray-600"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200",
+                      searchMode === 'pro' && "translate-x-6"
+                    )}
+                  />
+                </button>
+              </div>
+              <SearchBar onSearch={handleSearch} isLoading={isLoading} />
+            </div>
+          </div>
+
+          {/* Pro Mode Modal */}
+          {showProModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <motion.div 
+                className="bg-gray-900 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <h3 className="text-white text-lg font-medium mb-2">Pro Analysis Access</h3>
+                <p className="text-gray-400 mb-4">
+                  Advanced analytics are currently in closed beta. Join the waitlist by sending us a DM on Twitter to get early access to advanced metrics and deeper analysis!
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowProModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700"
+                  >
+                    Close
+                  </button>
+                  <a 
+                    href="https://twitter.com/aegisolana"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-center"
+                  >
+                    Join Waitlist
+                  </a>
+                </div>
+              </motion.div>
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 p-4 bg-red-500/10 text-red-400 rounded-lg border border-red-500/20">
