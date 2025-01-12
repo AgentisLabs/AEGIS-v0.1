@@ -406,9 +406,9 @@ export default function ChatBox({ report }: ChatBoxProps) {
       
       <motion.div 
         className={cn(
-          "bg-gray-900/95 rounded-lg p-4 shadow-xl transition-all duration-300",
+          "bg-gray-900/95 rounded-lg p-4 shadow-xl transition-all duration-300 overflow-hidden",
           isMaximized 
-            ? "fixed inset-4 z-50 m-auto max-h-[90vh] max-w-6xl" 
+            ? "fixed inset-4 z-50 m-auto max-h-[90vh] max-w-6xl flex flex-col"
             : "w-full max-w-2xl mx-auto"
         )}
         initial={{ opacity: 0, y: 20 }}
@@ -500,9 +500,10 @@ export default function ChatBox({ report }: ChatBoxProps) {
         <div 
           ref={chatContainerRef}
           className={cn(
-            "overflow-y-auto mb-1 space-y-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent min-h-[200px]",
-            isMaximized ? "max-h-[calc(85vh-180px)]" : "max-h-[250px]"
+            "overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent min-h-[200px] flex-1",
+            isMaximized ? "max-h-full" : "max-h-[250px]"
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           {messages.length === 0 && message.trim() === '' && (
             <div 
