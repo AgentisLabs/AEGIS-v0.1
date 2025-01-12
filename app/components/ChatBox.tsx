@@ -36,6 +36,8 @@ type TradeModalState = {
   type: TradeType | null;
 };
 
+type ChartInterval = '1S' | '1' | '5' | '15' | '60' | '240' | '720' | '1D';
+
 export default function ChatBox({ report }: ChatBoxProps) {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -58,6 +60,10 @@ export default function ChatBox({ report }: ChatBoxProps) {
   const [userTokenBalance, setUserTokenBalance] = useState<number>(0);
   const [slippage, setSlippage] = useState<string>('2');
   const slippageOptions = ['0.5', '1', '2', '5'];
+  const [chartInterval, setChartInterval] = useState<ChartInterval>('15');
+  const chartUrl = `https://www.gmgn.cc/kline/sol/${report.address}?theme=dark&interval=${chartInterval}`;
+  const [isChartMaximized, setIsChartMaximized] = useState(false);
+  const [currentSuggestion, setCurrentSuggestion] = useState(0);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -76,6 +82,16 @@ export default function ChatBox({ report }: ChatBoxProps) {
       }
     }
   }, [isLoading, messages]);
+
+  useEffect(() => {
+    if (messages.length === 0 && message.trim() === '') {
+      const interval = setInterval(() => {
+        setCurrentSuggestion((prev) => (prev + 1) % exampleQueries.length);
+      }, 3000); // Changes every 3 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [messages.length, message]);
 
   const exampleQueries = [
     "Analyze this chart",
@@ -435,66 +451,110 @@ export default function ChatBox({ report }: ChatBoxProps) {
           </div>
         </div>
 
+        <div className={cn(
+          "bg-gray-900 rounded-lg overflow-hidden transition-all duration-300 mb-4",
+          isChartMaximized 
+            ? "fixed inset-4 z-50 m-auto" 
+            : "w-full h-[400px]"
+        )}>
+          <div className="flex justify-between items-center p-2 bg-gray-800">
+            <div className="flex gap-2">
+              {(['1', '5', '15', '60', '1D'] as ChartInterval[]).map((interval) => (
+                <button
+                  key={interval}
+                  onClick={() => setChartInterval(interval)}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors duration-200 ${
+                    chartInterval === interval
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                  }`}
+                >
+                  {interval === '1D' ? '1D' : `${interval}m`}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setIsChartMaximized(!isChartMaximized)}
+              className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors duration-200"
+            >
+              {isChartMaximized ? (
+                <Minimize2 className="w-5 h-5" />
+              ) : (
+                <Maximize2 className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+          <iframe
+            src={chartUrl}
+            className="w-full h-[calc(100%-48px)] border-0"
+            title="GMGN Trading Chart"
+          />
+          {isChartMaximized && (
+            <div 
+              className="fixed inset-0 bg-black/50 -z-10" 
+              onClick={() => setIsChartMaximized(false)}
+            />
+          )}
+        </div>
+
         <div 
           ref={chatContainerRef}
           className={cn(
-            "overflow-y-auto mb-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent",
-            isMaximized ? "h-[calc(85vh-180px)]" : "h-[400px]"
+            "overflow-y-auto mb-1 space-y-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent min-h-[200px]",
+            isMaximized ? "max-h-[calc(85vh-180px)]" : "max-h-[250px]"
           )}
         >
-          {messages.length === 0 && message.trim() === '' ? (
-            <div className="space-y-2">
-              {exampleQueries.map((query, index) => (
-                <div
-                  key={index}
-                  onClick={() => setMessage(query)}
-                  className="p-3 bg-gray-800/50 rounded-lg text-gray-400 hover:text-white 
-                           hover:bg-gray-800 cursor-pointer transition-all duration-200"
-                >
-                  {query}
-                </div>
-              ))}
+          {messages.length === 0 && message.trim() === '' && (
+            <div 
+              onClick={() => setMessage(exampleQueries[currentSuggestion])}
+              className="p-4 bg-gray-800/50 rounded-lg text-gray-400 hover:text-white 
+                         hover:bg-gray-800 cursor-pointer transition-all duration-200
+                         flex items-center justify-between"
+            >
+              <span>{exampleQueries[currentSuggestion]}</span>
+              <span className="text-gray-600 text-sm">
+                {currentSuggestion + 1}/{exampleQueries.length}
+              </span>
             </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "p-4 rounded-lg",
-                  msg.isUser 
-                    ? "bg-blue-500/20 text-white ml-auto" 
-                    : "bg-gray-800/50 text-gray-200",
-                  "max-w-[85%]",
-                  msg.isUser ? "ml-auto" : "mr-auto"
-                )}
-              >
-                {msg.image && (
-                  <div className="relative w-full h-[200px]">
-                    <Image 
-                      src={msg.image} 
-                      alt="Chart" 
-                      className="rounded-lg mb-2"
-                      fill
-                      style={{ objectFit: 'contain' }}
-                    />
-                  </div>
-                )}
-                {msg.isUser ? msg.text : (
-                  <>
-                    {msg.isStreaming ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-75" />
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-150" />
-                      </div>
-                    ) : (
-                      formatMessage(msg.text)
-                    )}
-                  </>
-                )}
-              </div>
-            ))
           )}
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={cn(
+                "p-4 rounded-lg",
+                msg.isUser 
+                  ? "bg-blue-500/20 text-white ml-auto" 
+                  : "bg-gray-800/50 text-gray-200",
+                "max-w-[85%]",
+                msg.isUser ? "ml-auto" : "mr-auto"
+              )}
+            >
+              {msg.image && (
+                <div className="relative w-full h-[200px]">
+                  <Image 
+                    src={msg.image} 
+                    alt="Chart" 
+                    className="rounded-lg mb-2"
+                    fill
+                    style={{ objectFit: 'contain' }}
+                  />
+                </div>
+              )}
+              {msg.isUser ? msg.text : (
+                <>
+                  {msg.isStreaming ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-75" />
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-150" />
+                    </div>
+                  ) : (
+                    formatMessage(msg.text)
+                  )}
+                </>
+              )}
+            </div>
+          ))}
         </div>
 
         <form onSubmit={handleSubmit} className="relative">
