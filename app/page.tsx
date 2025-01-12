@@ -16,6 +16,7 @@ import {
   IconCoin
 } from "@tabler/icons-react";
 import { BentoImage } from './components/ui/bento-image';
+import WalletButton from './components/WalletButton';
 
 // Skeleton component with dot pattern and mask
 const Skeleton = () => (
@@ -110,29 +111,29 @@ export default function TokenAnalyzer() {
   const features = [
     {
       title: "Token Analysis Engine",
-      description: "AI-powered analysis of Solana tokens and their metrics.",
+      description: "Advanced AI-powered analysis of Solana tokens and their metrics.",
       header: <BentoImage src="/images/box-1.png" alt="Token Analysis Engine" />,
       className: "md:col-span-2",
       icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Execute with natural language (beta)",
-      description: "Wexley facilitates blockchain operations with a natural language interface.",
-      header: <BentoImage src="/images/box-2.png" alt="Risk Assessment" />,
+      title: "Latency Free Execution",
+      description: "Execute trades rapidly using GMGN or Jupiter.",
+      header: <BentoImage src="/images/box-2.png" alt="Natural Language Trading" />,
       className: "md:col-span-1",
       icon: <IconBrain className="h-4 w-4 text-neutral-500" />,
     },
     {
       title: "Market Intelligence",
-      description: "Deep insights into market trends, social sentiment & token performance.",
+      description: "Real-time market data and sentiment analysis for informed decision making.",
       header: <BentoImage src="/images/box-3.png" alt="Market Intelligence" />,
       className: "md:col-span-1",
       icon: <IconChartCandle className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "AI Trading Assistant",
-      description: "Wexley is your all in one on-chain assistant. From chart analysis to executing advanced trading strategies",
-      header: <BentoImage src="/images/box-4.png" alt="AI Trading Assistant" />,
+      title: "Custom Trading Agents",
+      description: "Create and deploy your own AI trading agents with personalized strategies.",
+      header: <BentoImage src="/images/box-4.png" alt="Custom Trading Agents" />,
       className: "md:col-span-2",
       icon: <IconCoin className="h-4 w-4 text-neutral-500" />,
     },
@@ -149,18 +150,16 @@ export default function TokenAnalyzer() {
           </div>
         </div>
 
-        {!currentReport && (
-          <div className="absolute top-0 left-0">
-            <a 
-              href="/docs" 
-              className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
-            >
-              <span className="text-sm font-medium text-blue-400">
-                📚
-              </span>
-            </a>
-          </div>
-        )}
+        <div className="absolute top-0 left-48">
+          <a 
+            href="/docs" 
+            className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+          >
+            <span className="text-sm font-medium text-blue-400">
+              📚
+            </span>
+          </a>
+        </div>
 
         <div className="text-center mb-16 relative pt-12 md:pt-0">
           <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />

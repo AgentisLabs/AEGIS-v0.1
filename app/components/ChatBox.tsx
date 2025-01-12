@@ -10,6 +10,12 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { WEXLEY_PERSONALITY } from '../lib/constants';
 import Image from 'next/image';
+import WalletConnect from './WalletConnect';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { Slider } from './ui/slider';
+import { Input } from './ui/input';
+import { JupiterSwapTool } from '../lib/tools/jupiter-swap';
+import { VersionedTransaction } from '@solana/web3.js';
 
 interface ChatBoxProps {
   report: TokenAnalysis;
@@ -22,6 +28,12 @@ type Message = {
   isUser: boolean;
   image?: string;
   isStreaming?: boolean;
+};
+
+type TradeType = 'buy' | 'sell' | 'limit' | 'stop';
+type TradeModalState = {
+  isOpen: boolean;
+  type: TradeType | null;
 };
 
 export default function ChatBox({ report }: ChatBoxProps) {
@@ -37,6 +49,15 @@ export default function ChatBox({ report }: ChatBoxProps) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [showTradingPanel, setShowTradingPanel] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const { connected } = useWallet();
+  const [tradeModal, setTradeModal] = useState<TradeModalState>({ isOpen: false, type: null });
+  const [buyAmount, setBuyAmount] = useState<string>('');
+  const [sellPercentage, setSellPercentage] = useState<number>(50);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const wallet = useWallet();
+  const [userTokenBalance, setUserTokenBalance] = useState<number>(0);
+  const [slippage, setSlippage] = useState<string>('2');
+  const slippageOptions = ['0.5', '1', '2', '5'];
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -171,15 +192,172 @@ export default function ChatBox({ report }: ChatBoxProps) {
     </ReactMarkdown>
   );
 
+  const handleTrade = async (type: 'buy' | 'sell' | 'limit' | 'stop') => {
+    if (!connected) {
+      setShowModal(true);
+      return;
+    }
+
+    // Here we'll implement the actual trading logic using our JupiterSwapTool
+    console.log(`Executing ${type} trade for token:`, report.address);
+    // TODO: Implement trade execution
+  };
+
+  const executeTrade = async (type: TradeType, amount: string | number) => {
+    try {
+      setIsExecuting(true);
+      setTradeModal({ isOpen: false, type: null });
+      
+      // Calculate actual token amount for selling
+      const sellAmount = type === 'sell' 
+        ? Math.floor((userTokenBalance * (amount as number)) / 100)
+        : amount;
+      
+      const queryParams = new URLSearchParams({
+        token_in_address: type === 'buy' ? 'So11111111111111111111111111111111111111112' : report.address,
+        token_out_address: type === 'buy' ? report.address : 'So11111111111111111111111111111111111111112',
+        in_amount: type === 'buy' ? 
+          (parseFloat(amount as string) * 1e9).toString() : // Convert SOL to lamports
+          sellAmount.toString(), // Use calculated token amount for selling
+        from_address: wallet.publicKey?.toString() || '',
+        slippage: slippage // Use the custom slippage value
+      });
+
+      console.log('Requesting quote with params:', Object.fromEntries(queryParams.entries()));
+
+      // Use our API route instead of calling gmgn.ai directly
+      const quoteResponse = await fetch(`/api/trade?${queryParams.toString()}`);
+      console.log('Quote response status:', quoteResponse.status);
+      
+      const quote = await quoteResponse.json();
+      console.log('Full quote response:', JSON.stringify(quote, null, 2));
+
+      if (!quote.data) {
+        throw new Error(quote.msg || 'Failed to get quote');
+      }
+
+      if (!quote.data.raw_tx?.swapTransaction) {
+        console.error('Unexpected quote response format:', quote);
+        throw new Error('Invalid quote response format');
+      }
+
+      // Request wallet signature
+      const swapTransactionBuf = Buffer.from(quote.data.raw_tx.swapTransaction, 'base64');
+      const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+      
+      console.log('Requesting wallet signature...');
+      const signedTx = await wallet.signTransaction(transaction);
+      const serializedTx = Buffer.from(signedTx.serialize()).toString('base64');
+
+      console.log('Submitting signed transaction...');
+      // Submit signed transaction through our API route
+      const submitResponse = await fetch('/api/trade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'submit',
+          signed_tx: serializedTx
+        })
+      });
+
+      const submitResult = await submitResponse.json();
+      console.log('Submit response:', submitResult);
+      
+      if (!submitResult.data) {
+        throw new Error(submitResult.msg || 'Failed to submit transaction');
+      }
+
+      // Poll for transaction status through our API route
+      console.log('Polling for transaction status...');
+      
+      // If we got here, the transaction was submitted successfully
+      // Let's show a success message right away
+      setMessages(prev => [...prev, {
+        text: `✅ Trade submitted successfully!\nTransaction: ${submitResult.data.hash}\n\nAmount: ${
+          type === 'buy' 
+            ? `${amount} SOL → ${quote.data.quote.outAmount} ${report.symbol}`
+            : `${amount}% ${report.symbol} → ${quote.data.quote.outAmount} SOL`
+        }\n\nView on Solana Explorer: https://solscan.io/tx/${submitResult.data.hash}`,
+        isUser: false
+      }]);
+
+      // Optional: Poll for final confirmation
+      try {
+        for (let i = 0; i < 3; i++) { // Reduced polling attempts
+          const statusResponse = await fetch('/api/trade', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'status',
+              hash: submitResult.data.hash,
+              last_valid_height: quote.data.raw_tx.lastValidBlockHeight
+            })
+          });
+          
+          const status = await statusResponse.json();
+          console.log('Status response:', status);
+          
+          if (status.code === 0 && status.data?.success === true) {
+            console.log('Transaction confirmed on chain');
+            break;
+          }
+          
+          // Wait 2 seconds between checks
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (statusError) {
+        console.log('Status check error (non-critical):', statusError);
+        // Don't throw the error since the transaction might still be successful
+      }
+
+      return; // Exit after showing success message
+
+    } catch (error) {
+      console.error('Trade error:', error);
+      setMessages(prev => [...prev, {
+        text: `❌ Trade failed: ${error.message}`,
+        isUser: false
+      }]);
+    } finally {
+      setIsExecuting(false);
+      setTradeModal({ isOpen: false, type: null }); // Keep this as a backup
+    }
+  };
+
+  const fetchUserBalance = async () => {
+    if (!wallet.publicKey || !report.address) return;
+    
+    try {
+      const response = await fetch(`/api/balance?address=${wallet.publicKey.toString()}&token=${report.address}`);
+      const data = await response.json();
+      if (data.success) {
+        setUserTokenBalance(data.balance);
+      }
+    } catch (error) {
+      console.error('Failed to fetch token balance:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (tradeModal.isOpen && tradeModal.type === 'sell') {
+      fetchUserBalance();
+    }
+  }, [tradeModal.isOpen, tradeModal.type]);
+
+  useEffect(() => {
+    if (executionEnabled) {
+      setShowTradingPanel(true);
+    }
+  }, [executionEnabled]);
+
   return (
     <>
       <div className="fixed top-4 left-4">
-        <button
-          disabled
-          className="bg-gray-800 text-gray-400 px-4 py-2 rounded-lg opacity-50 cursor-not-allowed"
-        >
-          Connect Wallet
-        </button>
+        <WalletConnect />
       </div>
       
       <motion.div 
@@ -198,10 +376,22 @@ export default function ChatBox({ report }: ChatBoxProps) {
             <div className="flex items-center space-x-2">
               <span className="text-gray-400 text-sm">Execution</span>
               <button
-                onClick={() => setShowModal(true)}
-                className="w-12 h-6 rounded-full transition-colors duration-200 ease-in-out bg-gray-600"
+                onClick={() => {
+                  if (connected) {
+                    setExecutionEnabled(!executionEnabled);
+                  } else {
+                    setShowModal(true);
+                  }
+                }}
+                className={`w-12 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                  executionEnabled ? 'bg-blue-500' : 'bg-gray-600'
+                }`}
               >
-                <div className="w-4 h-4 rounded-full bg-white transform transition-transform duration-200 ease-in-out translate-x-1" />
+                <div
+                  className={`w-4 h-4 rounded-full bg-white transform transition-transform duration-200 ease-in-out ${
+                    executionEnabled ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
               </button>
             </div>
             <button
@@ -377,35 +567,158 @@ export default function ChatBox({ report }: ChatBoxProps) {
           />
         )}
 
-        {showTradingPanel && (
+        {showTradingPanel && executionEnabled && (
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700"
           >
-            <div className="flex flex-wrap gap-2">
-              <button className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg 
-                             hover:bg-green-500/30 transition-colors duration-200">
-                Buy
-              </button>
-              <button className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg 
-                             hover:bg-red-500/30 transition-colors duration-200">
-                Sell
-              </button>
-              <button className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg 
-                             hover:bg-blue-500/30 transition-colors duration-200">
-                Limit Order
-              </button>
-              <button className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg 
-                             hover:bg-purple-500/30 transition-colors duration-200">
-                Stop Loss
-              </button>
-            </div>
-            <div className="mt-2 text-xs text-gray-500">
-              Connect wallet to enable trading
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2 p-2 bg-gray-900/50 rounded-lg">
+                <span className="text-sm text-gray-400">Slippage:</span>
+                <div className="flex gap-2">
+                  {slippageOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setSlippage(option)}
+                      className={`px-2 py-1 text-xs rounded-md transition-colors duration-200 ${
+                        slippage === option
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                    >
+                      {option}%
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    value={slippage}
+                    onChange={(e) => setSlippage(e.target.value)}
+                    className="w-12 px-2 py-1 text-xs bg-gray-800 border border-gray-700 rounded-md text-white text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="Custom"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => connected ? setTradeModal({ isOpen: true, type: 'buy' }) : setShowModal(true)}
+                  disabled={!connected || isExecuting}
+                  className={`px-4 py-2 bg-green-500/20 text-green-400 rounded-lg 
+                    transition-colors duration-200
+                    ${connected ? 'hover:bg-green-500/30 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                >
+                  {isExecuting ? 'Executing...' : 'Buy'}
+                </button>
+                <button 
+                  onClick={() => connected ? setTradeModal({ isOpen: true, type: 'sell' }) : setShowModal(true)}
+                  disabled={!connected || isExecuting}
+                  className={`px-4 py-2 bg-red-500/20 text-red-400 rounded-lg 
+                    transition-colors duration-200
+                    ${connected ? 'hover:bg-red-500/30 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                >
+                  {isExecuting ? 'Executing...' : 'Sell'}
+                </button>
+              </div>
+              <div className="text-xs text-gray-500">
+                {!connected ? 'Connect wallet to enable trading' : 'Trading enabled'}
+              </div>
             </div>
           </motion.div>
+        )}
+
+        {tradeModal.isOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <motion.div 
+              className="bg-gray-900 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <h3 className="text-white text-lg font-medium mb-4">
+                {tradeModal.type === 'buy' ? 'Buy Token' : 'Sell Token'}
+              </h3>
+              
+              {tradeModal.type === 'buy' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-400 mb-2 block">Select Amount (SOL)</label>
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {[0.05, 0.1, 0.25, 0.5, 1.0, 2.0].map((amount) => (
+                        <button
+                          key={amount}
+                          onClick={() => setBuyAmount(amount.toString())}
+                          className={`py-2 px-3 rounded-lg transition-colors duration-200 ${
+                            buyAmount === amount.toString()
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          }`}
+                        >
+                          {amount} ◎
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-4">
+                      <label className="text-sm text-gray-400 mb-2 block">Custom Amount</label>
+                      <Input
+                        type="number"
+                        value={buyAmount}
+                        onChange={(e) => setBuyAmount(e.target.value)}
+                        placeholder="Enter SOL amount"
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-gray-400 mb-2 block">Select Amount to Sell</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[25, 50, 75, 100].map((percent) => (
+                        <button
+                          key={percent}
+                          onClick={() => setSellPercentage(percent)}
+                          className={`py-2 px-3 rounded-lg transition-colors duration-200 ${
+                            sellPercentage === percent
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                          }`}
+                        >
+                          {percent}%
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-sm text-gray-400">
+                      Balance: {(userTokenBalance / 1e6).toFixed(2)} {report.symbol}
+                    </div>
+                    <div className="mt-2 text-sm text-gray-400">
+                      Selling: {((userTokenBalance * sellPercentage) / 1e8).toFixed(2)} {report.symbol}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => setTradeModal({ isOpen: false, type: null })}
+                  className="flex-1 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => executeTrade(
+                    tradeModal.type!, 
+                    tradeModal.type === 'buy' ? buyAmount : sellPercentage
+                  )}
+                  disabled={isExecuting}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {isExecuting ? 'Executing...' : 'Confirm'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </motion.div>
     </>

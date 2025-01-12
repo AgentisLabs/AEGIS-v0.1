@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import type { Metadata } from "next";
 import "./globals.css";
+import WalletProvider from './providers/WalletProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -47,7 +48,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+        <WalletProvider>
+          {children}
+        </WalletProvider>
       </body>
     </html>
   );

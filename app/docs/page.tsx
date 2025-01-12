@@ -30,9 +30,45 @@ export default function DocsPage() {
       {/* Introduction */}
       <section className="mb-12">
         <h3 className="text-2xl font-semibold mb-4">1. Introduction</h3>
-        <p className="text-gray-600 leading-relaxed">
-          The cryptocurrency market&apos;s complexity has created a significant barrier to entry for many potential participants. AEGIS addresses this challenge by introducing an AI-powered terminal that serves as an intelligent gateway to the Solana ecosystem. By combining natural language processing with collaborative AI agents, AEGIS enables users to execute complex operations through simple conversations.
-        </p>
+        <div className="space-y-6 text-gray-600 leading-relaxed">
+          <p>
+            AEGIS was born from a simple yet powerful belief: artificial intelligence should be democratized, 
+            not gatekept. In an era where AI capabilities are increasingly concentrated in the hands of a few, 
+            we&apos;re taking a different path—creating open-source solutions that empower the entire crypto community.
+          </p>
+
+          <p>
+            Think of AEGIS as the lovechild of Crypto Twitter and a Bloomberg Terminal—combining the 
+            real-time pulse of social sentiment with institutional-grade analysis tools. We&apos;re building what 
+            we wished existed: a platform that transforms complex market data into actionable insights, 
+            making sophisticated trading strategies accessible to everyone, not just well-funded institutions.
+          </p>
+
+          <p>
+            Our mission extends beyond just building tools. We&apos;re creating a framework that empowers the 
+            community to innovate. Whether you&apos;re a developer looking to integrate custom data sources, 
+            a trader wanting to create specialized analysis workflows, or a researcher seeking to deploy 
+            novel AI models—AEGIS provides the building blocks for your vision.
+          </p>
+
+          <p>
+            This documentation outlines our current capabilities and future roadmap. As we continue to 
+            evolve, our commitment remains unchanged: delivering institutional-grade AI insights and 
+            trading tools to the masses, while maintaining the open and collaborative spirit that makes 
+            the Solana ecosystem unique.
+          </p>
+
+          <div className="mt-8 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+            <h4 className="text-lg font-medium text-blue-400 mb-2">Our Core Principles:</h4>
+            <ul className="list-disc ml-6 space-y-2 text-gray-500">
+              <li>Open Source: All core technologies are public and community-auditable</li>
+              <li>Community First: Built by traders, for traders</li>
+              <li>Democratized Access: Institutional-grade tools for everyone</li>
+              <li>Extensible Design: Easy integration of custom data sources and strategies</li>
+              <li>Continuous Innovation: Regular updates driven by community feedback</li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       {/* Core Architecture */}
@@ -57,7 +93,7 @@ export default function DocsPage() {
             <ul className="list-disc ml-6 text-gray-600 space-y-2">
               <li>Advanced context understanding for complex trading instructions</li>
               <li>Real-time translation of natural language to executable operations</li>
-              <li>Continuous learning from user interactions</li>
+              <li>Direct integration with GMGN for high-speed trade execution</li>
               <li>Multi-turn conversation handling for strategy refinement</li>
             </ul>
           </div>
@@ -84,12 +120,12 @@ export default function DocsPage() {
             
             <div className="space-y-4">
               <div>
-                <h5 className="text-lg font-medium mb-2 text-gray-400">Portfolio Rebalancing</h5>
+                <h5 className="text-lg font-medium mb-2 text-gray-400">High-Speed Execution</h5>
                 <ul className="list-disc ml-6 text-gray-600 space-y-2">
-                  <li>Natural language commands for complex rebalancing strategies</li>
-                  <li>Multi-token correlation analysis</li>
-                  <li>Risk-adjusted position sizing</li>
-                  <li>Tax-efficient trading paths</li>
+                  <li>Direct GMGN integration for optimal trade execution</li>
+                  <li>Sub-second transaction processing</li>
+                  <li>Automatic slippage protection</li>
+                  <li>Real-time transaction status updates</li>
                 </ul>
               </div>
 
@@ -227,6 +263,16 @@ export default function DocsPage() {
             <h4 className="text-xl font-medium mb-3">4.3 Blockchain Integration</h4>
             <div className="space-y-4">
               <div>
+                <h5 className="text-lg font-medium mb-2 text-gray-400">Trade Execution Layer</h5>
+                <ul className="list-disc ml-6 text-gray-600 space-y-2">
+                  <li>GMGN-powered trade execution</li>
+                  <li>Optimized transaction routing</li>
+                  <li>Real-time quote aggregation</li>
+                  <li>Automatic gas optimization</li>
+                </ul>
+              </div>
+
+              <div>
                 <h5 className="text-lg font-medium mb-2 text-gray-400">Solana Program Integration</h5>
                 <ul className="list-disc ml-6 text-gray-600 space-y-2">
                   <li>Custom program interfaces</li>
@@ -284,6 +330,17 @@ export default function DocsPage() {
               <li>Custom risk limits and controls</li>
             </ul>
           </div>
+
+          <div>
+            <h4 className="text-xl font-medium mb-3">5.4 Automated Trading Features</h4>
+            <ul className="list-disc ml-6 text-gray-600 space-y-2">
+              <li>Score-based auto-execution of trades</li>
+              <li>Customizable entry criteria based on AI analysis</li>
+              <li>Risk-adjusted position sizing</li>
+              <li>Multi-factor entry conditions</li>
+              <li>Real-time monitoring and execution</li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -293,12 +350,13 @@ export default function DocsPage() {
         
         <div className="space-y-6">
           <div>
-            <h4 className="text-xl font-medium mb-3">Phase 1: Foundation (Q1-Q2 2025)</h4>
+            <h4 className="text-xl font-medium mb-3">Phase 1: Foundation (Current)</h4>
             <ul className="list-disc ml-6 text-gray-600 space-y-2">
-              <li>Core natural language processing engine</li>
-              <li>Basic trading operations</li>
-              <li>Initial agent collaboration framework</li>
-              <li>Solana program integration</li>
+              <li>✅ Core natural language processing engine</li>
+              <li>✅ High-speed GMGN trade execution</li>
+              <li>✅ Basic token analysis</li>
+              <li>✅ Solana program integration</li>
+              <li>✅ Real-time market data</li>
             </ul>
           </div>
 
@@ -306,9 +364,17 @@ export default function DocsPage() {
             <h4 className="text-xl font-medium mb-3">Phase 2: Enhancement (Q3-Q4 2025)</h4>
             <ul className="list-disc ml-6 text-gray-600 space-y-2">
               <li>Advanced strategy execution</li>
+              <li>Natural language commands for complex rebalancing strategies</li>
+              <li>Multi-token correlation analysis</li>
+              <li>Risk-adjusted position sizing</li>
+              <li>Tax-efficient trading paths</li>
+              <li>Automated trading based on AI analysis scores</li>
               <li>Custom agent creation platform</li>
               <li>Institutional features</li>
               <li>Enhanced risk management</li>
+              <li>Adaptive Memory Network (AMN) implementation</li>
+              <li>Pattern recognition and learning from successful trades</li>
+              <li>Cross-reference verification system</li>
             </ul>
           </div>
 
@@ -319,6 +385,10 @@ export default function DocsPage() {
               <li>Advanced ML model integration</li>
               <li>Decentralized agent marketplace</li>
               <li>Community governance implementation</li>
+              <li>Self-learning capability from market patterns</li>
+              <li>Dynamic knowledge graph updates</li>
+              <li>Experience synthesis across multiple agents</li>
+              <li>Advanced contextual memory layers</li>
             </ul>
           </div>
         </div>
