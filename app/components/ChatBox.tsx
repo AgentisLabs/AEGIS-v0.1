@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Loader2, Image as ImageIcon, Maximize2, Minimize2, BarChart2 } from 'lucide-react';
+import { Send, Loader2, Image as ImageIcon, Maximize2, Minimize2, BarChart2, X } from 'lucide-react';
 import { TokenAnalysis } from '../types';
 import { cn } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -38,6 +38,9 @@ type TradeModalState = {
 
 type ChartInterval = '1S' | '1' | '5' | '15' | '60' | '240' | '720' | '1D';
 
+// Add this new type for chart display modes
+type ChartDisplayMode = 'normal' | 'minimized' | 'maximized';
+
 export default function ChatBox({ report }: ChatBoxProps) {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,7 +65,8 @@ export default function ChatBox({ report }: ChatBoxProps) {
   const slippageOptions = ['0.5', '1', '2', '5'];
   const [chartInterval, setChartInterval] = useState<ChartInterval>('15');
   const chartUrl = `https://www.gmgn.cc/kline/sol/${report.address}?theme=dark&interval=${chartInterval}`;
-  const [isChartMaximized, setIsChartMaximized] = useState(false);
+  const [chartDisplay, setChartDisplay] = useState<ChartDisplayMode>('normal');
+  const [chartHeight, setChartHeight] = useState<number>(400);
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
 
   useEffect(() => {
@@ -465,46 +469,69 @@ export default function ChatBox({ report }: ChatBoxProps) {
 
         <div className={cn(
           "bg-gray-900 rounded-lg overflow-hidden transition-all duration-300 mb-4",
-          isChartMaximized 
-            ? "fixed inset-4 z-50 m-auto" 
-            : "w-full h-[400px]"
+          chartDisplay === 'maximized' && "fixed inset-4 z-50 m-auto",
+          chartDisplay === 'minimized' && "h-12 cursor-pointer hover:bg-gray-800/50",
+          chartDisplay === 'normal' && `h-[${chartHeight}px]`
         )}>
           <div className="flex justify-between items-center p-2 bg-gray-800">
             <div className="flex gap-2">
-              {(['1', '5', '15', '60', '1D'] as ChartInterval[]).map((interval) => (
-                <button
-                  key={interval}
-                  onClick={() => setChartInterval(interval)}
-                  className={`px-3 py-1 text-xs rounded-md transition-colors duration-200 ${
-                    chartInterval === interval
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                  }`}
-                >
-                  {interval === '1D' ? '1D' : `${interval}m`}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setIsChartMaximized(!isChartMaximized)}
-              className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors duration-200"
-            >
-              {isChartMaximized ? (
-                <Minimize2 className="w-5 h-5" />
-              ) : (
-                <Maximize2 className="w-5 h-5" />
+              {chartDisplay !== 'minimized' && (
+                ['1', '5', '15', '60', '1D'].map((interval) => (
+                  <button
+                    key={interval}
+                    onClick={() => setChartInterval(interval as ChartInterval)}
+                    className={cn(
+                      "px-3 py-1 text-xs rounded-md transition-colors duration-200",
+                      chartInterval === interval
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                    )}
+                  >
+                    {interval === '1D' ? '1D' : `${interval}m`}
+                  </button>
+                ))
               )}
-            </button>
+            </div>
+            <div className="flex items-center gap-2">
+              {chartDisplay !== 'minimized' && (
+                <button
+                  onClick={() => setChartDisplay('minimized')}
+                  className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors duration-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  if (chartDisplay === 'maximized') {
+                    setChartDisplay('normal');
+                  } else {
+                    setChartDisplay('maximized');
+                  }
+                }}
+                className="p-1 text-gray-400 hover:text-white rounded-lg transition-colors duration-200"
+              >
+                {chartDisplay === 'maximized' ? (
+                  <Minimize2 className="w-5 h-5" />
+                ) : (
+                  <Maximize2 className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </div>
-          <iframe
-            src={chartUrl}
-            className="w-full h-[calc(100%-48px)] border-0"
-            title="GMGN Trading Chart"
-          />
-          {isChartMaximized && (
+          
+          {chartDisplay !== 'minimized' && (
+            <iframe
+              src={chartUrl}
+              className="w-full h-[calc(100%-48px)] border-0"
+              title="GMGN Trading Chart"
+            />
+          )}
+          
+          {chartDisplay === 'maximized' && (
             <div 
               className="fixed inset-0 bg-black/50 -z-10" 
-              onClick={() => setIsChartMaximized(false)}
+              onClick={() => setChartDisplay('normal')}
             />
           )}
         </div>

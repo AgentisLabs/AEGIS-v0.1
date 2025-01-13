@@ -120,7 +120,7 @@ export default function TokenAnalyzer() {
       icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Natural Lnaguage Execution",
+      title: "Natural Language Execution",
       description: "Execute trades with natural language by talking to Wexley.",
       header: <BentoImage src="/images/box-2.png" alt="Natural Language Trading" />,
       className: "md:col-span-1",
