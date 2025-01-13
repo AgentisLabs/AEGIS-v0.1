@@ -134,7 +134,7 @@ export default function TokenAnalyzer() {
       icon: <IconChartCandle className="h-4 w-4 text-neutral-500" />,
     },
     {
-      title: "Customizeable Analysis",
+      title: "Customizeable Analysis Flows (coming soon)",
       description: "Create and deploy your own analysis workflow with customizable data sources and personalized trading strategies.",
       header: <BentoImage src="/images/box-4.png" alt="Custom Trading Agents" />,
       className: "md:col-span-2",
