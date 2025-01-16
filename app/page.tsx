@@ -143,11 +143,59 @@ export default function TokenAnalyzer() {
   ];
 
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-black">
+    <main className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 to-black">
       <div className="max-w-6xl mx-auto relative">
-        <div className="absolute top-0 right-0 z-10">
+        <div className="absolute top-0 left-4 md:left-48">
           <a 
-            href="https://agentislabs.ai" 
+            href="/docs" 
+            className="px-2 md:px-4 py-1 md:py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+          >
+            <span className="text-xs md:text-sm font-medium text-blue-400">
+              📚
+            </span>
+          </a>
+        </div>
+
+        <div className="text-center mb-8 md:mb-16 relative pt-12 md:pt-0">
+          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
+          
+          <div className="relative inline-flex items-center gap-2">
+            <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-4">
+              AEGIS
+            </h1>
+            <span className="absolute -right-8 md:-right-12 top-0 px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/20">
+              BETA
+            </span>
+          </div>
+          
+          <p className="text-lg md:text-xl text-gray-300 mb-4 font-light tracking-wide mt-4 px-4 md:px-0">
+            AI Enabled Gateway for Intelligent Solana Operation
+          </p>
+
+          <div className="flex justify-center mt-4 md:hidden">
+            <a 
+              href="https://agentislabs.xyz" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
+            >
+              <span className="text-xs font-medium text-blue-400">
+                Powered by Agentis Labs
+              </span>
+              <Image
+                src="/agentislogo.jpg"
+                alt="Agentis Labs Logo"
+                width={16}
+                height={16}
+                className="rounded-full"
+              />
+            </a>
+          </div>
+        </div>
+
+        <div className="absolute top-0 right-0 z-10 hidden md:block">
+          <a 
+            href="https://agentislabs.xyz" 
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
@@ -165,34 +213,6 @@ export default function TokenAnalyzer() {
           </a>
         </div>
 
-        <div className="absolute top-0 left-48">
-          <a 
-            href="/docs" 
-            className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
-          >
-            <span className="text-sm font-medium text-blue-400">
-              📚
-            </span>
-          </a>
-        </div>
-
-        <div className="text-center mb-16 relative pt-12 md:pt-0">
-          <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
-          
-          <div className="relative inline-flex items-center gap-2">
-            <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 mb-4">
-              AEGIS
-            </h1>
-            <span className="absolute -right-12 top-0 px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/20">
-              BETA
-            </span>
-          </div>
-          
-          <p className="text-xl text-gray-300 mb-4 font-light tracking-wide mt-4">
-            AI Enabled Gateway for Intelligent Solana Operation
-          </p>
-        </div>
-        
         <div className="relative z-10">
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-6">
