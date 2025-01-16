@@ -147,7 +147,7 @@ export default function TokenAnalyzer() {
       <div className="max-w-6xl mx-auto relative">
         <div className="absolute top-0 right-0 z-10">
           <a 
-            href="https://agentislabs.xyz" 
+            href="https://agentislabs.ai" 
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
