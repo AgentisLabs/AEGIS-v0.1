@@ -145,12 +145,24 @@ export default function TokenAnalyzer() {
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-black">
       <div className="max-w-6xl mx-auto relative">
-        <div className="absolute top-0 right-0 z-10 hidden md:block">
-          <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div className="absolute top-0 right-0 z-10">
+          <a 
+            href="https://agentislabs.xyz" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
+          >
             <span className="text-sm font-medium text-blue-400">
-              🚀 Execute trades with Wexley - coming soon
+              Powered by Agentis Labs
             </span>
-          </div>
+            <Image
+              src="/agentislogo.jpg"
+              alt="Agentis Labs Logo"
+              width={20}
+              height={20}
+              className="rounded-full"
+            />
+          </a>
         </div>
 
         <div className="absolute top-0 left-48">
@@ -174,14 +186,6 @@ export default function TokenAnalyzer() {
             <span className="absolute -right-12 top-0 px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/20">
               BETA
             </span>
-          </div>
-
-          <div className="md:hidden mt-4">
-            <div className="inline-block px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <span className="text-sm font-medium text-blue-400">
-                🚀 Execute trades with Wexley - coming soon
-              </span>
-            </div>
           </div>
           
           <p className="text-xl text-gray-300 mb-4 font-light tracking-wide mt-4">
