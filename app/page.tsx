@@ -265,7 +265,7 @@ export default function TokenAnalyzer() {
                     Close
                   </button>
                   <a 
-                    href="https://twitter.com/aegisolana"
+                    href="https://twitter.com/agentislab"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-center"
