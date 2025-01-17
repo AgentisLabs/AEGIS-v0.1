@@ -29,28 +29,41 @@ export async function searchTweets(query: string, maxResults = 25) {
   try {
     console.log('Searching Twitter for token:', query);
     const results = await exa.searchAndContents(
-      query,
+      `site:twitter.com ${query}`,
       {
         type: "keyword",
-        includeDomains: ["twitter.com"],
         numResults: maxResults,
         text: true,
         summary: true,
         timeRange: {
-          start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        }
+          start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          end: new Date()
+        },
+        useCustomParser: true,
+        javascript: true,
+        selectors: [
+          'article',
+          '[data-testid="tweet"]',
+          '[data-testid="tweetText"]'
+        ]
       }
     );
 
-    console.log(`Found ${results.results.length} tweets`);
+    console.log(`Found ${results.results.length} tweets:`, 
+      results.results.map(r => ({
+        text: r.text?.slice(0, 100),
+        url: r.url
+      }))
+    );
     
     return results.results
+      .filter(result => result.text || result.summary)
       .slice(0, 25)
       .map(result => ({
-        text: result.text?.slice(0, 500) || '',
+        text: result.text?.slice(0, 500) || result.summary?.slice(0, 500) || '',
         url: result.url || '',
         summary: result.summary?.slice(0, 200) || '',
-        highlights: []
+        highlights: result.highlights || []
       }));
 
   } catch (error) {
