@@ -545,7 +545,6 @@ export async function generateTokenScore(data: {
       market_metrics: {
         market_cap: data.market_data?.market_metrics?.marketCap || 0,
         fdv: data.market_data?.market_metrics?.fdv || 0,
-        mcap_to_fdv: data.market_data?.market_metrics?.marketCap / (data.market_data?.market_metrics?.fdv || 1),
       }
     };
 
@@ -566,10 +565,10 @@ ${JSON.stringify({
 RECENT TWEETS:
 ${tweetTexts || 'No recent tweets found'}
 
-Please analyze both market data and social sentiment to provide an analysis in this JSON format. When discussing liquidity, reference both the total liquidity (${marketAnalysis.liquidity_metrics.total_liquidity} USD) and liquidity score (${marketAnalysis.liquidity_metrics.liquidity_score}/100):
+Please analyze both market data and social sentiment to provide an analysis in this JSON format. Focus on liquidity and volume metrics rather than market cap to FDV ratios. When discussing liquidity, reference both the total liquidity (${marketAnalysis.liquidity_metrics.total_liquidity} USD) and liquidity score (${marketAnalysis.liquidity_metrics.liquidity_score}/100):
 {
   "overall_score": <number 0-100>,
-  "summary": "<detailed risk assessment including specific metrics and actual liquidity values>",
+  "summary": "<detailed risk assessment focusing on liquidity and volume>",
   "strengths": ["<specific positive aspects with numerical evidence including USD liquidity>"],
   "weaknesses": ["<specific risk factors with numerical evidence including USD liquidity>"],
   "risk_assessment": {
@@ -606,10 +605,21 @@ LIQUIDITY ANALYSIS (Most Important 🔥):
 - $250k-$1M = MEDIUM RISK
 - Over $1M = BASED AF 💎
 
-KEY RATIOS TO CHECK:
-- Liquidity/Market Cap (higher = better)
+MARKET CAP ASSESSMENT FOR MEMECOINS:
+- Under $900k = Super early, extreme risk/reward 💣
+- $900k-$2M = Low range, high risk/reward potential 🎲
+- $2M-$5M = Healthy growing token, lots of upside 📈
+- $5M-$15M = Well-established, strong growth phase 💪
+- $15M-$25M = Very solid performance 🌟
+- $25M-$50M = Major success territory 🚀
+- $50M-$100M = Incredibly successful memecoin 💎
+- $100M+ = God-tier memecoin status 👑
+
+KEY METRICS TO CHECK:
+- Liquidity depth (most important)
 - 24h Volume/Market Cap (higher = more active trading)
-- Price change patterns (but don't overemphasize)
+- Price change patterns
+- Social engagement/virality 🔥
 
 SOCIAL SENTIMENT:
 - Twitter activity and sentiment
@@ -618,7 +628,7 @@ SOCIAL SENTIMENT:
 
 Use degen terms (WAGMI, NGMI, moon, etc.) and emojis 🔥 💎 🚀 🌙 but always back your analysis with actual numbers. Get hyped about good metrics but never hide the risks!
 
-Remember: Focus on LIQUIDITY first - without liquidity, even the best meme can't moon! And always highlight the volume/mcap ratio as it shows real trading interest.`
+Remember: Focus on LIQUIDITY first - without liquidity, even the best meme can't moon! Higher market caps in memecoins are BULLISH, not bearish - they show proven success and community backing!`
         },
         {
           role: "user",
