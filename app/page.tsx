@@ -59,14 +59,19 @@ export default function TokenAnalyzer() {
         body: JSON.stringify({ address }),
       });
 
-      if (marketDataResponse.ok) {
-        const { data: marketData } = await marketDataResponse.json();
-        // Update report with market data while keeping loading true
+      if (!marketDataResponse.ok) {
+        throw new Error('Failed to fetch market data');
+      }
+
+      const marketDataResult = await marketDataResponse.json();
+      
+      // Validate market data response
+      if (marketDataResult && marketDataResult.data) {
         setCurrentReport(prev => ({
           ...prev,
-          market_data: marketData,
+          market_data: marketDataResult.data,
           summary: "Analyzing token...",
-          loading: true // Keep loading true for full analysis
+          loading: true
         }));
       }
 
@@ -78,25 +83,38 @@ export default function TokenAnalyzer() {
       });
 
       if (!analysisResponse.ok) {
-        const error = await analysisResponse.json();
-        throw new Error(error.error || 'Failed to analyze token');
+        const errorData = await analysisResponse.text(); // Use text() instead of json()
+        try {
+          const parsedError = JSON.parse(errorData);
+          throw new Error(parsedError.error || 'Failed to analyze token');
+        } catch (parseError) {
+          throw new Error(`Failed to analyze token: ${errorData}`);
+        }
       }
 
-      const { data } = await analysisResponse.json();
-      // Preserve the market data we already have if the full analysis doesn't include it
+      const analysisText = await analysisResponse.text();
+      let analysisData;
+      try {
+        analysisData = JSON.parse(analysisText);
+      } catch (parseError) {
+        console.error('Raw response:', analysisText);
+        throw new Error('Invalid JSON in analysis response');
+      }
+
+      // Preserve the market data we already have
       setCurrentReport(prev => ({ 
-        ...data, 
-        market_data: data.market_data || prev?.market_data,
+        ...analysisData.data, 
+        market_data: analysisData.data.market_data || prev?.market_data,
         loading: false 
       }));
 
       // Update leaderboard if high score
-      if (data.overall_score > 70) {
+      if (analysisData.data.overall_score > 70) {
         setLeaderboard(prev => {
           const filtered = prev.filter(item => 
             item.address.toLowerCase() !== address.toLowerCase()
           );
-          return [...filtered, data]
+          return [...filtered, analysisData.data]
             .sort((a, b) => b.overall_score - a.overall_score)
             .slice(0, 10);
         });
@@ -145,19 +163,43 @@ export default function TokenAnalyzer() {
   return (
     <main className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 to-black">
       <div className="max-w-6xl mx-auto relative">
-        <div className="absolute top-0 left-4 md:left-8 z-50 flex items-center gap-4">
-          <WalletConnect />
-          <a 
-            href="/docs" 
-            className="group block px-6 py-3 bg-blue-500/10 border border-blue-500/20 
-              rounded-lg hover:bg-blue-500/20 transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-base font-medium text-blue-400 group-hover:text-blue-300">
+        {/* WalletConnect in top left when no token analysis */}
+        {!currentReport && (
+          <div className="absolute top-0 left-4 md:left-8 z-50">
+            <WalletConnect />
+          </div>
+        )}
+
+        {/* Documentation and Agentis Labs buttons in top right */}
+        <div className="absolute top-0 right-0 z-10 hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-4">
+            <a 
+              href="/docs" 
+              className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 
+                rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
+            >
+              <span className="text-sm font-medium text-blue-400">
                 📚 Documentation
               </span>
-            </div>
-          </a>
+            </a>
+            <a 
+              href="https://agentislabs.ai" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
+            >
+              <span className="text-sm font-medium text-blue-400">
+                Powered by Agentis Labs
+              </span>
+              <Image
+                src="/agentislogo.jpg"
+                alt="Agentis Labs Logo"
+                width={20}
+                height={20}
+                className="rounded-full"
+              />
+            </a>
+          </div>
         </div>
 
         <div className="text-center mb-8 md:mb-16 relative pt-16 md:pt-20">
@@ -195,26 +237,6 @@ export default function TokenAnalyzer() {
               />
             </a>
           </div>
-        </div>
-
-        <div className="absolute top-0 right-0 z-10 hidden md:block">
-          <a 
-            href="https://agentislabs.ai" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center gap-2"
-          >
-            <span className="text-sm font-medium text-blue-400">
-              Powered by Agentis Labs
-            </span>
-            <Image
-              src="/agentislogo.jpg"
-              alt="Agentis Labs Logo"
-              width={20}
-              height={20}
-              className="rounded-full"
-            />
-          </a>
         </div>
 
         <div className="relative z-10">
