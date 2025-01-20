@@ -1,13 +1,57 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, TrendingUp, Users, ExternalLink, Wallet, BarChart3, Activity, Link, ChartBar } from 'lucide-react';
+import { Star, TrendingUp, Users, ExternalLink, Wallet, BarChart3, Activity, Link, ChartBar, Share2, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TokenAnalysis } from '../types';
 
 interface ReportCardProps {
   report: TokenAnalysis;
 }
+
+// Update scoring logic functions with more precise tiers
+const getMarketCapScore = (marketCap: number) => {
+  if (marketCap >= 10000000000) return 95;  // $10B+
+  if (marketCap >= 5000000000) return 92;   // $5B+
+  if (marketCap >= 1000000000) return 90;   // $1B+
+  if (marketCap >= 500000000) return 85;    // $500M+
+  if (marketCap >= 250000000) return 82;    // $250M+
+  if (marketCap >= 100000000) return 80;    // $100M+
+  if (marketCap >= 50000000) return 75;     // $50M+
+  if (marketCap >= 25000000) return 72;     // $25M+
+  if (marketCap >= 10000000) return 70;     // $10M+
+  if (marketCap >= 5000000) return 65;      // $5M+
+  if (marketCap >= 2500000) return 62;      // $2.5M+
+  if (marketCap >= 1000000) return 60;      // $1M+
+  if (marketCap >= 750000) return 55;       // $750K+
+  if (marketCap >= 500000) return 50;       // $500K+
+  if (marketCap >= 250000) return 45;       // $250K+
+  if (marketCap >= 100000) return 40;       // $100K+
+  if (marketCap >= 50000) return 35;        // $50K+
+  return 30;                                // Under $50K
+};
+
+const getVolumeScore = (volume24h: number, marketCap: number) => {
+  const volumeRatio = volume24h / marketCap * 100;
+  
+  if (volumeRatio >= 50) return 95;       // Extremely high volume
+  if (volumeRatio >= 35) return 92;       // Very high volume
+  if (volumeRatio >= 25) return 90;       // Strong volume
+  if (volumeRatio >= 20) return 85;       // High volume
+  if (volumeRatio >= 15) return 82;       // Good volume
+  if (volumeRatio >= 10) return 80;       // Healthy volume
+  if (volumeRatio >= 7.5) return 75;      // Above average volume
+  if (volumeRatio >= 5) return 70;        // Average volume
+  if (volumeRatio >= 4) return 65;        // Moderate volume
+  if (volumeRatio >= 3) return 62;        // Below average volume
+  if (volumeRatio >= 2) return 60;        // Low volume
+  if (volumeRatio >= 1.5) return 55;      // Very low volume
+  if (volumeRatio >= 1) return 50;        // Minimal volume
+  if (volumeRatio >= 0.75) return 45;     // Concerning volume
+  if (volumeRatio >= 0.5) return 40;      // Poor volume
+  if (volumeRatio >= 0.25) return 35;     // Very poor volume
+  return 30;                              // Extremely poor volume
+};
 
 export default function ReportCard({ report }: ReportCardProps) {
   const [loadingStates, setLoadingStates] = useState({
@@ -16,6 +60,8 @@ export default function ReportCard({ report }: ReportCardProps) {
     analysis: true,
     social: true
   });
+  const [isSharing, setIsSharing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Update loading states when report changes
   useEffect(() => {
@@ -53,11 +99,20 @@ export default function ReportCard({ report }: ReportCardProps) {
     <div className="h-8 bg-gray-800 animate-pulse rounded-lg" />
   );
 
+  // Update the metrics array with scores
   const metrics = [
     { 
-      icon: Star, 
-      label: 'Overall Score', 
-      value: report.overall_score 
+      icon: Wallet,
+      label: 'Market Cap', 
+      value: report.market_data?.market_metrics?.marketCap ? 
+             `$${new Intl.NumberFormat('en-US', {
+               notation: 'compact',
+               maximumFractionDigits: 1
+             }).format(report.market_data.market_metrics.marketCap)}` : 
+             '-',
+      subValue: report.market_data?.market_metrics?.marketCap ? 
+                `Score: ${getMarketCapScore(report.market_data.market_metrics.marketCap)}/100` : 
+                null
     },
     { 
       icon: Activity, 
@@ -72,14 +127,14 @@ export default function ReportCard({ report }: ReportCardProps) {
     { 
       icon: BarChart3, 
       label: 'Liquidity', 
-      value: report.market_data?.market_metrics?.liquidity_score ? 
-             `${Math.round(report.market_data.market_metrics.liquidity_score)}/100` : 
-             'N/A',
-      subValue: report.market_data?.market_metrics?.liquidity_usd ? 
-                `$${new Intl.NumberFormat('en-US', {
-                  notation: 'compact',
-                  maximumFractionDigits: 1
-                }).format(report.market_data.market_metrics.liquidity_usd)}` : 
+      value: report.market_data?.market_metrics?.liquidity_usd ? 
+             `$${new Intl.NumberFormat('en-US', {
+               notation: 'compact',
+               maximumFractionDigits: 1
+             }).format(report.market_data.market_metrics.liquidity_usd)}` : 
+             '-',
+      subValue: report.market_data?.market_metrics?.liquidity_score ? 
+                `Score: ${Math.round(report.market_data.market_metrics.liquidity_score)}/100` : 
                 null
     },
     { 
@@ -90,12 +145,12 @@ export default function ReportCard({ report }: ReportCardProps) {
                notation: 'compact',
                maximumFractionDigits: 1
              }).format(report.market_data.market_metrics.volume_24h)}` : 
-             '$0',
-      subValue: report.market_data?.market_metrics?.marketCap ? 
-                `MC: $${new Intl.NumberFormat('en-US', {
-                  notation: 'compact',
-                  maximumFractionDigits: 1
-                }).format(report.market_data.market_metrics.marketCap)}` : 
+             '-',
+      subValue: report.market_data?.market_metrics?.volume_24h && report.market_data?.market_metrics?.marketCap ? 
+                `Score: ${getVolumeScore(
+                  report.market_data.market_metrics.volume_24h,
+                  report.market_data.market_metrics.marketCap
+                )}/100` : 
                 null
     }
   ];
@@ -136,12 +191,36 @@ export default function ReportCard({ report }: ReportCardProps) {
     fullReport: report
   })}
 
+  const handleShare = async () => {
+    try {
+      setIsSharing(true);
+      const response = await fetch('/api/analysis/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Optionally open the tweet in a new window
+        window.open(result.tweetUrl, '_blank');
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error sharing analysis:', error);
+      // Add your error handling UI here
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-gray-900/50 backdrop-blur-lg rounded-2xl p-8 text-white border border-gray-800"
+      className="bg-gray-900/50 backdrop-blur-lg rounded-2xl p-8 text-white border border-gray-800 relative"
     >
       <div className="flex justify-between items-start mb-8">
         <div>
@@ -175,7 +254,8 @@ export default function ReportCard({ report }: ReportCardProps) {
           className="text-right"
         >
           <div className={`text-4xl font-bold ${
-            report.overall_score >= 70 ? 'text-emerald-500' :
+            loadingStates.basicInfo ? 'text-gray-400' :
+            report.overall_score >= 70 ? 'text-green-500' :
             report.overall_score >= 50 ? 'text-yellow-500' :
             'text-red-500'
           }`}>
@@ -223,218 +303,125 @@ export default function ReportCard({ report }: ReportCardProps) {
             <LoadingSkeleton />
           </div>
         ) : (
-          <p className="text-gray-300 mb-6">{report.summary}</p>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-lg font-semibold mb-3 text-emerald-500">Strengths</h4>
-            <div className="space-y-2">
-              {loadingStates.analysis ? (
-                [...Array(3)].map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-800/30 animate-pulse rounded-lg" />
-                ))
-              ) : (
-                report.strengths?.map((strength, i) => (
-                  <motion.div
-                    key={i}
-                    variants={item}
-                    className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-emerald-500/50 transition-colors duration-300"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-gray-300">{strength}</span>
-                  </motion.div>
-                )) || (
-                  <div className="text-gray-400">No strengths identified</div>
-                )
-              )}
-            </div>
+          <div className="relative">
+            <p className={`text-gray-300 ${!isExpanded && 'line-clamp-4'}`}>
+              {report.summary}
+            </p>
+            {report.summary && report.summary.length > 100 && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 text-blue-400 hover:text-blue-300 text-sm font-medium focus:outline-none"
+              >
+                {isExpanded ? 'Show Less' : 'Read More'}
+              </button>
+            )}
           </div>
+        )}
+      </motion.div>
 
-          <div>
-            <h4 className="text-lg font-semibold mb-3 text-red-500">Risk Factors</h4>
-            <div className="space-y-2">
-              {loadingStates.analysis ? (
-                [...Array(3)].map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-800/30 animate-pulse rounded-lg" />
-                ))
-              ) : (
-                report.weaknesses?.map((weakness, i) => (
-                  <motion.div
-                    key={i}
-                    variants={item}
-                    className="flex items-center gap-2 bg-gray-800/30 p-3 rounded-lg border border-gray-800 hover:border-red-500/50 transition-colors duration-300"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="text-gray-300">{weakness}</span>
-                  </motion.div>
-                )) || (
-                  <div className="text-gray-400">No risk factors identified</div>
-                )
-              )}
+      <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
+        <h3 className="text-xl font-semibold mb-4">Market Assessment</h3>
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
+            <h4 className="text-lg font-semibold mb-3 text-blue-500">Market Metrics</h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Price Trend</span>
+                <span className={`font-semibold px-3 py-1 rounded-full ${
+                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
+                  report.market_data?.market_metrics?.price_trend?.price_trend === 'up' ? 'bg-green-500/20 text-green-400' :
+                  report.market_data?.market_metrics?.price_trend?.price_trend === 'down' ? 'bg-red-500/20 text-red-400' :
+                  'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  {loadingStates.analysis ? 'Unknown' :
+                   report.market_data?.market_metrics?.price_trend?.price_trend === 'up' ? '↑ Up' :
+                   report.market_data?.market_metrics?.price_trend?.price_trend === 'down' ? '↓ Down' :
+                   'Neutral'
+                  }
+                  {report.market_data?.market_metrics?.price_trend?.price_change_24h && 
+                    ` (${report.market_data.market_metrics.price_trend.price_change_24h.toFixed(2)}%)`
+                  }
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Liquidity</span>
+                <span className="font-semibold px-3 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                  ${report.market_data?.market_metrics?.liquidity_usd?.toLocaleString() || '0'}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Trading Volume (24h)</span>
+                <span className="font-semibold px-3 py-1 rounded-full bg-purple-500/20 text-purple-400">
+                  ${report.market_data?.market_metrics?.volume_24h?.toLocaleString() || '0'}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Market Cap</span>
+                <span className="font-semibold px-3 py-1 rounded-full bg-green-500/20 text-green-400">
+                  ${report.market_data?.market_metrics?.marketCap?.toLocaleString() || '0'}
+                </span>
+              </div>
             </div>
+
+            {report.market_metrics?.liquidity_assessment && (
+              <div className="mt-4 p-3 bg-gray-900/50 rounded-lg text-gray-300 text-sm">
+                <p>{report.market_metrics.liquidity_assessment}</p>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
 
       <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
-        <h3 className="text-xl font-semibold mb-4">Risk Assessment</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <h3 className="text-xl font-semibold mb-4">Social Metrics</h3>
+        <div className="grid grid-cols-1 gap-6">
           <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
-            <h4 className="text-lg font-semibold mb-3 text-orange-500">Risk Levels</h4>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Overall Risk</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
-                  report.risk_assessment?.level === 'extreme' ? 'bg-red-500/20 text-red-400' :
-                  report.risk_assessment?.level === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                  report.risk_assessment?.level === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-green-500/20 text-green-400'
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <div className="text-gray-400 text-sm mb-1">Sentiment Score</div>
+                <div className={`text-2xl font-bold ${
+                  loadingStates.social ? 'text-gray-400' :
+                  (report.social_metrics?.sentiment_score || 0) >= 70 ? 'text-green-400' :
+                  (report.social_metrics?.sentiment_score || 0) >= 40 ? 'text-yellow-400' :
+                  'text-red-400'
                 }`}>
-                  {loadingStates.analysis ? 'Fetching...' :
-                   report.risk_assessment?.level?.charAt(0).toUpperCase() + report.risk_assessment?.level?.slice(1) || 'Unknown'}
-                </span>
+                  {loadingStates.social ? '-' : `${report.social_metrics?.sentiment_score || 0}/100`}
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Liquidity Risk</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
-                  report.risk_assessment?.liquidity_risk === 'high' ? 'bg-red-500/20 text-red-400' :
-                  report.risk_assessment?.liquidity_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-green-500/20 text-green-400'
+              <div>
+                <div className="text-gray-400 text-sm mb-1">Community Trust</div>
+                <div className={`text-2xl font-bold ${
+                  loadingStates.social ? 'text-gray-400' :
+                  ((report.social_metrics?.community_trust || 0) * 100) >= 70 ? 'text-green-400' :
+                  ((report.social_metrics?.community_trust || 0) * 100) >= 40 ? 'text-yellow-400' :
+                  'text-red-400'
                 }`}>
-                  {loadingStates.analysis ? 'Fetching...' :
-                   report.risk_assessment?.liquidity_risk?.charAt(0).toUpperCase() + report.risk_assessment?.liquidity_risk?.slice(1) || 'Unknown'}
-                </span>
+                  {loadingStates.social ? '-' : `${((report.social_metrics?.community_trust || 0) * 100).toFixed(0)}%`}
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Volatility Risk</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
-                  report.risk_assessment?.volatility_risk === 'high' ? 'bg-red-500/20 text-red-400' :
-                  report.risk_assessment?.volatility_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-green-500/20 text-green-400'
+              <div>
+                <div className="text-gray-400 text-sm mb-1">Trending Score</div>
+                <div className={`text-2xl font-bold ${
+                  loadingStates.social ? 'text-gray-400' :
+                  (report.social_metrics?.trending_score || 0) >= 70 ? 'text-green-400' :
+                  (report.social_metrics?.trending_score || 0) >= 40 ? 'text-yellow-400' :
+                  'text-red-400'
                 }`}>
-                  {loadingStates.analysis ? 'Fetching...' :
-                   report.risk_assessment?.volatility_risk?.charAt(0).toUpperCase() + report.risk_assessment?.volatility_risk?.slice(1) || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Manipulation Risk</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  loadingStates.analysis ? 'bg-gray-500/20 text-gray-400' :
-                  report.risk_assessment?.manipulation_risk === 'high' ? 'bg-red-500/20 text-red-400' :
-                  report.risk_assessment?.manipulation_risk === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-green-500/20 text-green-400'
-                }`}>
-                  {loadingStates.analysis ? 'Fetching...' :
-                   report.risk_assessment?.manipulation_risk?.charAt(0).toUpperCase() + report.risk_assessment?.manipulation_risk?.slice(1) || 'Unknown'}
-                </span>
+                  {loadingStates.social ? '-' : `${report.social_metrics?.trending_score || 0}/100`}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
-            <h4 className="text-lg font-semibold mb-3 text-blue-500">Market Assessment</h4>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Price Trend</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  report.market_metrics?.price_trend === 'bullish' ? 'bg-green-500/20 text-green-400' :
-                  report.market_metrics?.price_trend === 'bearish' ? 'bg-red-500/20 text-red-400' :
-                  'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                  {report.market_metrics?.price_trend?.charAt(0).toUpperCase() + report.market_metrics?.price_trend?.slice(1) || 'Unknown'}
-                </span>
+            {report.social_metrics?.summary && (
+              <div className="text-gray-300 text-sm">
+                {report.social_metrics.summary}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Liquidity</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  report.market_metrics?.liquidity_assessment === 'high' ? 'bg-green-500/20 text-green-400' :
-                  report.market_metrics?.liquidity_assessment === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-red-500/20 text-red-400'
-                }`}>
-                  {report.market_metrics?.liquidity_assessment?.charAt(0).toUpperCase() + report.market_metrics?.liquidity_assessment?.slice(1) || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Trading Volume</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  report.market_metrics?.trading_volume === 'high' ? 'bg-green-500/20 text-green-400' :
-                  report.market_metrics?.trading_volume === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-red-500/20 text-red-400'
-                }`}>
-                  {report.market_metrics?.trading_volume?.charAt(0).toUpperCase() + report.market_metrics?.trading_volume?.slice(1) || 'Unknown'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Sustainability</span>
-                <span className={`font-semibold px-3 py-1 rounded-full ${
-                  report.market_metrics?.sustainability === 'sustainable' ? 'bg-green-500/20 text-green-400' :
-                  'bg-red-500/20 text-red-400'
-                }`}>
-                  {report.market_metrics?.sustainability?.charAt(0).toUpperCase() + report.market_metrics?.sustainability?.slice(1) || 'Unknown'}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </motion.div>
-
-      {report.social_metrics && (
-        <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
-          <h3 className="text-xl font-semibold mb-4">Social Sentiment</h3>
-          <div className="grid grid-cols-1 gap-6">
-            <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
-              <h4 className="text-lg font-semibold mb-3 text-purple-500">Community Sentiment</h4>
-              <div className="text-gray-300">
-                <p>{report.social_metrics.summary}</p>
-              </div>
-            </div>
-
-            <div className="bg-gray-800/30 p-4 rounded-lg border border-gray-800">
-              <h4 className="text-lg font-semibold mb-3 text-blue-500">Sentiment Metrics</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Sentiment</span>
-                  <span className={`font-semibold px-3 py-1 rounded-full ${
-                    report.social_metrics.sentiment_score > 0.3 ? 'bg-green-500/20 text-green-400' :
-                    report.social_metrics.sentiment_score < -0.3 ? 'bg-red-500/20 text-red-400' :
-                    'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {report.social_metrics.sentiment_score > 0.3 ? 'Positive' :
-                     report.social_metrics.sentiment_score < -0.3 ? 'Negative' :
-                     'Mixed'}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Community Trust</span>
-                  <span className={`font-semibold px-3 py-1 rounded-full ${
-                    report.social_metrics.community_trust > 0.7 ? 'bg-green-500/20 text-green-400' :
-                    report.social_metrics.community_trust > 0.4 ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                    {(report.social_metrics.community_trust * 100).toFixed(0)}%
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Trending Score</span>
-                  <span className={`font-semibold px-3 py-1 rounded-full ${
-                    report.social_metrics.trending_score > 70 ? 'bg-green-500/20 text-green-400' :
-                    report.social_metrics.trending_score > 30 ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                    {report.social_metrics.trending_score}/100
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       <motion.div variants={container} initial="hidden" animate="show" className="mt-8">
         <h3 className="text-xl font-semibold mb-4">Links & Analysis</h3>
@@ -451,6 +438,20 @@ export default function ReportCard({ report }: ReportCardProps) {
           </motion.a>
         </div>
       </motion.div>
+
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={handleShare}
+          disabled={isSharing}
+          className="p-2 hover:bg-gray-800 rounded-full transition-colors"
+        >
+          {isSharing ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Share2 className="w-5 h-5" />
+          )}
+        </button>
+      </div>
     </motion.div>
   );
 }

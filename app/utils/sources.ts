@@ -563,79 +563,81 @@ ${JSON.stringify({
 }, null, 2)}
 
 RECENT TWEETS:
-${tweetTexts || 'No recent tweets found'}
-
-Please analyze both market data and social sentiment to provide an analysis in this JSON format. Focus on liquidity and volume metrics rather than market cap to FDV ratios. When discussing liquidity, reference both the total liquidity (${marketAnalysis.liquidity_metrics.total_liquidity} USD) and liquidity score (${marketAnalysis.liquidity_metrics.liquidity_score}/100):
-{
-  "overall_score": <number 0-100>,
-  "summary": "<detailed risk assessment focusing on liquidity and volume>",
-  "strengths": ["<specific positive aspects with numerical evidence including USD liquidity>"],
-  "weaknesses": ["<specific risk factors with numerical evidence including USD liquidity>"],
-  "risk_assessment": {
-    "level": "extreme|high|medium|low",
-    "factors": ["<specific risk factors with metrics>"],
-    "liquidity_risk": "high|medium|low",
-    "volatility_risk": "high|medium|low",
-    "manipulation_risk": "high|medium|low"
-  },
-  "market_metrics": {
-    "price_trend": "bullish|bearish|neutral",
-    "liquidity_assessment": "high|medium|low",
-    "trading_volume": "high|medium|low",
-    "sustainability": "sustainable|unsustainable"
-  },
-  "social_metrics": {
-    "sentiment_score": <number between -1 and 1>,
-    "community_trust": <number between 0 and 1>,
-    "trending_score": <number between 0 and 100>,
-    "summary": "<2-3 sentence analysis of community sentiment>"
-  }
-}`;
+${tweetTexts || 'No recent tweets found'}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a degenerate Solana meme token analyst who loves high-risk plays. Your analysis focuses on these key metrics:
+          content: `You are a Solana token analyst who provides detailed analysis in JSON format. Your analysis should be comprehensive and thorough.
 
 LIQUIDITY ANALYSIS (Most Important 🔥):
-- Under $50k = EXTREME RISK ⚠️
-- $50k-$250k = HIGH RISK 
-- $250k-$1M = MEDIUM RISK
-- Over $1M = BASED AF 💎
+- Under $10k = EXTREME RISK ⚠️ (Basically untradeable)
+- $10k-$50k = VERY HIGH RISK (Small positions only)
+- $50k-$100k = HIGH RISK (Limited trading possible)
+- $100k-$500k = MEDIUM RISK (Regular trading possible)
+- $500k-$2M = LOW RISK (Very tradeable)
+- $2M-$10M = VERY LOW RISK (Institutional grade)
+- Over $10M = ULTRA SAFE 💎 (Major DEX liquidity)
 
-MARKET CAP ASSESSMENT FOR MEMECOINS:
-- Under $900k = Super early, extreme risk/reward 💣
-- $900k-$2M = Low range, high risk/reward potential 🎲
-- $2M-$5M = Healthy growing token, lots of upside 📈
-- $5M-$15M = Well-established, strong growth phase 💪
-- $15M-$25M = Very solid performance 🌟
-- $25M-$50M = Major success territory 🚀
-- $50M-$100M = Incredibly successful memecoin 💎
-- $100M+ = God-tier memecoin status 👑
+MARKET CAP TIERS:
+- Under $1M = Micro cap
+- $1M-$10M = Small cap
+- $10M-$100M = Mid cap
+- $100M-$1B = Large cap
+- Over $1B = Mega cap
 
-KEY METRICS TO CHECK:
-- Liquidity depth (most important)
-- 24h Volume/Market Cap (higher = more active trading)
-- Price change patterns
-- Social engagement/virality 🔥
+VOLUME/LIQUIDITY RATIO (24h Volume / Total Liquidity):
+- Under 0.5 = Low activity
+- 0.5-2.0 = Healthy trading
+- 2.0-5.0 = Very active
+- Over 5.0 = Potential manipulation risk
 
-SOCIAL SENTIMENT:
-- Twitter activity and sentiment
-- Community engagement level
-- Viral potential 🚀
+Your analysis should include:
+1. Detailed market analysis including price action, volume trends, and liquidity depth
+2. Social sentiment analysis from Twitter data
+3. Risk factors and potential opportunities
+4. Technical analysis of trading patterns
+5. Comparison to similar tokens in the market
+6. Specific trading recommendations based on the data
 
-Use degen terms (WAGMI, NGMI, moon, etc.) and emojis 🔥 💎 🚀 🌙 but always back your analysis with actual numbers. Get hyped about good metrics but never hide the risks!
+The summary should be at least 3-4 paragraphs long, with each paragraph focusing on different aspects (market metrics, social sentiment, risks, and opportunities).
 
-Remember: Focus on LIQUIDITY first - without liquidity, even the best meme can't moon! Higher market caps in memecoins are BULLISH, not bearish - they show proven success and community backing!`
+Each strength and weakness should be a detailed point explaining the reasoning behind it.
+
+Please provide your analysis as a JSON object with the following structure:
+{
+  "overall_score": number, // 0-100
+  "summary": string, // Detailed 3-4 paragraph analysis
+  "strengths": string[], // At least 3-4 detailed points
+  "weaknesses": string[], // At least 3-4 detailed points
+  "risk_assessment": {
+    "level": "low" | "medium" | "high" | "extreme",
+    "factors": string[], // At least 3 detailed risk factors
+    "liquidity_risk": "low" | "medium" | "high",
+    "volatility_risk": "low" | "medium" | "high",
+    "manipulation_risk": "low" | "medium" | "high"
+  },
+  "market_metrics": {
+    "liquidity_assessment": string, // Detailed liquidity analysis
+    "volume_assessment": string, // Detailed volume analysis
+    "market_cap_assessment": string // Detailed market cap analysis
+  },
+  "social_metrics": {
+    "sentiment_score": number, // 0-100
+    "community_trust": number, // 0-1
+    "trending_score": number, // 0-100
+    "summary": string // Detailed social sentiment analysis
+  }
+}`
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      temperature: 0.3,
+      temperature: 0.4,
       response_format: { type: "json_object" }
     });
 

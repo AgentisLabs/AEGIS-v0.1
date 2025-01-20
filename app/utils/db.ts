@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { TokenAnalysis } from '@/app/types';
 
 export const DAILY_SEARCH_LIMIT = 10;
 export const DAILY_MESSAGE_LIMIT = 50;
@@ -98,4 +100,27 @@ export async function getCurrentUsage(ipAddress: string): Promise<{
       messageLimit: DAILY_MESSAGE_LIMIT
     };
   }
+}
+
+const supabaseClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export async function saveAnalysis(analysis: TokenAnalysis, tweetId?: string) {
+  const { data, error } = await supabaseClient
+    .from('analyses')
+    .insert([
+      {
+        token_address: analysis.address,
+        analysis_data: analysis,
+        tweet_id: tweetId,
+        created_at: new Date().toISOString()
+      }
+    ])
+    .select('id')
+    .single();
+
+  if (error) throw error;
+  return data.id;
 }

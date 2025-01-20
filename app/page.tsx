@@ -16,7 +16,7 @@ import {
   IconCoin
 } from "@tabler/icons-react";
 import { BentoImage } from './components/ui/bento-image';
-import WalletButton from './components/WalletButton';
+import WalletConnect from './components/WalletConnect';
 import { cn } from '@/lib/utils';
 
 // Skeleton component with dot pattern and mask
@@ -145,18 +145,22 @@ export default function TokenAnalyzer() {
   return (
     <main className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 to-black">
       <div className="max-w-6xl mx-auto relative">
-        <div className="absolute top-0 left-4 md:left-48">
+        <div className="absolute top-0 left-4 md:left-8 z-50 flex items-center gap-4">
+          <WalletConnect />
           <a 
             href="/docs" 
-            className="px-2 md:px-4 py-1 md:py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
+            className="group block px-6 py-3 bg-blue-500/10 border border-blue-500/20 
+              rounded-lg hover:bg-blue-500/20 transition-all duration-200 cursor-pointer"
           >
-            <span className="text-xs md:text-sm font-medium text-blue-400">
-              📚
-            </span>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-base font-medium text-blue-400 group-hover:text-blue-300">
+                📚 Documentation
+              </span>
+            </div>
           </a>
         </div>
 
-        <div className="text-center mb-8 md:mb-16 relative pt-12 md:pt-0">
+        <div className="text-center mb-8 md:mb-16 relative pt-16 md:pt-20">
           <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full opacity-20" />
           
           <div className="relative inline-flex items-center gap-2">

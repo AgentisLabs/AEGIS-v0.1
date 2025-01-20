@@ -66,7 +66,7 @@ export default function ChatBox({ report }: ChatBoxProps) {
   const [chartInterval, setChartInterval] = useState<ChartInterval>('15');
   const chartUrl = `https://www.gmgn.cc/kline/sol/${report.address}?theme=dark&interval=${chartInterval}`;
   const [chartDisplay, setChartDisplay] = useState<ChartDisplayMode>('normal');
-  const [chartHeight, setChartHeight] = useState<number>(400);
+  const [chartHeight, setChartHeight] = useState(400);
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
 
   useEffect(() => {
@@ -117,54 +117,14 @@ export default function ChatBox({ report }: ChatBoxProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || isLoading) return;
-
-    // Enhanced trade command parsing
-    const buyMatch = message.match(/buy\s+([\d.]+)\s*sol/i);
-    const sellMatch = message.match(/sell\s+([\d.]+)%/i);
-    const sellHalfMatch = message.toLowerCase().match(/sell\s*(half|50|fifty)/);
-    const sellAllMatch = message.toLowerCase().match(/sell\s*(all|everything|100)/);
-
-    // Check wallet connection for any trade command
-    if ((buyMatch || sellMatch || sellHalfMatch || sellAllMatch) && !connected) {
-      setMessages(prev => [...prev, {
-        text: "Please connect your wallet first to execute trades.",
-        isUser: false
-      }]);
-      setShowModal(true);
-      return;
-    }
-
-    // Handle sell half/all commands
-    if (connected && (sellHalfMatch || sellAllMatch)) {
-      const percentage = sellHalfMatch ? 50 : 100;
-      setMessages(prev => [...prev, { text: message, isUser: true }]);
-      await executeTrade('sell', percentage);
-      return;
-    }
-
-    // Existing trade command handling
-    if (buyMatch && connected) {
-      const amount = buyMatch[1];
-      setMessages(prev => [...prev, { text: message, isUser: true }]);
-      await executeTrade('buy', amount);
-      return;
-    }
-
-    if (sellMatch && connected) {
-      const percentage = parseFloat(sellMatch[1]);
-      setMessages(prev => [...prev, { text: message, isUser: true }]);
-      await executeTrade('sell', percentage);
-      return;
-    }
-
-    // Continue with normal chat processing if no trade command detected
+  const sendMessage = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
+    
+    setMessage('');
     try {
       setIsLoading(true);
       setMessages(prev => [...prev, { 
-        text: message, 
+        text: messageText, 
         isUser: true,
         image: chartImage || undefined 
       }]);
@@ -181,7 +141,7 @@ export default function ChatBox({ report }: ChatBoxProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message,
+          message: messageText,
           tokenReport: report,
           chartImage: chartImage,
           messageHistory: messages,
@@ -210,8 +170,12 @@ export default function ChatBox({ report }: ChatBoxProps) {
       }]);
     } finally {
       setIsLoading(false);
-      setMessage('');
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage(message);
   };
 
   const formatMessage = (text: string) => (
@@ -523,8 +487,13 @@ export default function ChatBox({ report }: ChatBoxProps) {
           {chartDisplay !== 'minimized' && (
             <iframe
               src={chartUrl}
-              className="w-full h-[calc(100%-48px)] border-0"
-              title="GMGN Trading Chart"
+              className={cn(
+                "w-full border-0",
+                chartDisplay === 'maximized' 
+                  ? "h-[calc(100%-48px)]" 
+                  : "h-[calc(400px-48px)]"  // Adjusted height for normal view
+              )}
+              title="Token Trading Chart"
             />
           )}
           
@@ -545,16 +514,19 @@ export default function ChatBox({ report }: ChatBoxProps) {
           onClick={(e) => e.stopPropagation()}
         >
           {messages.length === 0 && message.trim() === '' && (
-            <div 
-              onClick={() => setMessage(exampleQueries[currentSuggestion])}
-              className="p-4 bg-gray-800/50 rounded-lg text-gray-400 hover:text-white 
-                         hover:bg-gray-800 cursor-pointer transition-all duration-200
-                         flex items-center justify-between"
-            >
-              <span>{exampleQueries[currentSuggestion]}</span>
-              <span className="text-gray-600 text-sm">
-                {currentSuggestion + 1}/{exampleQueries.length}
-              </span>
+            <div className="text-gray-400 text-sm mb-4">
+              <span className="block mb-2">Try asking:</span>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => sendMessage(exampleQueries[currentSuggestion])}
+                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-blue-400 
+                    rounded-lg border border-gray-700 transition-colors duration-200
+                    hover:border-blue-500 focus:outline-none focus:ring-2 
+                    focus:ring-blue-500 focus:ring-opacity-50"
+                >
+                  {exampleQueries[currentSuggestion]}
+                </button>
+              </div>
             </div>
           )}
           {messages.map((msg, index) => (

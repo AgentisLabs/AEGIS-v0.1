@@ -15,10 +15,14 @@ const WalletConnect: FC = () => {
   }, [wallet, connect]);
 
   return (
-    <div className="flex items-center space-x-4 scale-75 origin-left">
-      <WalletMultiButton className="!py-2 !px-3 !text-sm" />
+    <div className="flex items-center gap-3">
+      <WalletMultiButton 
+        className="!bg-blue-500/10 !border !border-blue-500/20 !rounded-lg 
+          hover:!bg-blue-500/20 !transition-colors !py-2 !px-4 !h-auto
+          !text-blue-400 hover:!text-blue-300 !font-medium !text-sm"
+      />
       {connected && (
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-blue-400/80">
           {publicKey?.toString().slice(0, 4)}...{publicKey?.toString().slice(-4)}
         </span>
       )}
