@@ -4,6 +4,7 @@ import { searchTweets } from '@/app/utils/sources';
 import * as ExaJS from 'exa-js';
 import { checkUsageLimit } from '@/app/utils/db';
 import { WEXLEY_PERSONALITY } from '@/app/lib/constants';
+import { JupiterSwapTool } from '@/app/lib/tools/jupiter-swap';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -32,6 +33,45 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { message, tokenReport, chartImage } = body;
+
+    // Parse trade commands
+    const buyMatch = message.match(/buy\s+([\d.]+)\s*sol/i);
+    const sellMatch = message.match(/sell\s+([\d.]+)%/i);
+
+    if (buyMatch || sellMatch) {
+      const jupiterTool = new JupiterSwapTool();
+      
+      if (buyMatch) {
+        const amount = parseFloat(buyMatch[1]);
+        const params = {
+          inputToken: 'So11111111111111111111111111111111111111112', // SOL
+          outputToken: tokenReport.address,
+          amount: amount * 1e9, // Convert SOL to lamports
+          slippage: 1.0
+        };
+
+        return NextResponse.json({
+          response: `Executing buy order for ${amount} SOL worth of ${tokenReport.market_data?.symbol || 'tokens'}...`,
+          trade: params
+        });
+      }
+
+      if (sellMatch) {
+        const percentage = parseFloat(sellMatch[1]);
+        // Calculate sell amount based on percentage of holdings
+        const params = {
+          inputToken: tokenReport.address,
+          outputToken: 'So11111111111111111111111111111111111111112', // SOL
+          amount: percentage,
+          slippage: 1.0
+        };
+
+        return NextResponse.json({
+          response: `Executing sell order for ${percentage}% of your ${tokenReport.market_data?.symbol || 'token'} holdings...`,
+          trade: params
+        });
+      }
+    }
 
     if (message && tokenReport) {
       const systemMessage = {

@@ -36,6 +36,7 @@ export default function TokenAnalyzer() {
   const [leaderboard, setLeaderboard] = useState<TokenAnalysis[]>([]);
   const [searchMode, setSearchMode] = useState<'lite' | 'pro'>('lite');
   const [showProModal, setShowProModal] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleSearch = async (address: string) => {
     setIsLoading(true);
@@ -126,6 +127,26 @@ export default function TokenAnalyzer() {
       setCurrentReport(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      // Generate shareable URL
+      const shareableUrl = `${window.location.origin}/report/${currentReport?.address}`;
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareableUrl);
+      
+      // Show success toast or alert
+      alert('Report link copied to clipboard!');
+      
+    } catch (error) {
+      console.error('Share error:', error);
+      alert('Failed to share report');
+    } finally {
+      setIsSharing(false);
     }
   };
 

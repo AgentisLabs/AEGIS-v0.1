@@ -56,4 +56,37 @@ agentis.sh/token/${analysis.address}`;
     console.error('Error posting to Twitter:', error);
     throw error;
   }
+}
+
+export async function postTokenReport(analysis: TokenAnalysis): Promise<string> {
+  try {
+    const symbol = analysis.market_data?.market_metrics?.pair?.base_token?.symbol || 'Unknown';
+    const volume = analysis.market_data?.market_metrics?.volume_24h || 0;
+    const holders = analysis.market_data?.market_metrics?.holders || 0;
+    const marketCap = analysis.market_data?.market_metrics?.marketCap || 0;
+    const overallScore = analysis.overall_score || 0;
+
+    const tweetText = `📊 Token Report: $${symbol}
+
+Contract: ${analysis.address}
+
+📈 Market Stats:
+• Market Cap: $${formatNumber(marketCap)}
+• 24h Volume: $${formatNumber(volume)}
+• Holders: ${formatNumber(holders)}
+
+🎯 AEGIS Score: ${overallScore}/100
+
+Full Analysis: agentis.sh/token/${analysis.address}`;
+
+    const tweet = await client.v2.tweet({
+      text: tweetText
+    });
+
+    console.log('Token report posted to Twitter:', tweet.data.id);
+    return tweet.data.id;
+  } catch (error) {
+    console.error('Error posting token report to Twitter:', error);
+    throw error;
+  }
 } 

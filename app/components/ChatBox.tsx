@@ -121,52 +121,81 @@ export default function ChatBox({ report }: ChatBoxProps) {
     if (!messageText.trim() || isLoading) return;
     
     setMessage('');
+    setMessages(prev => [...prev, { text: messageText, isUser: true }]);
+
+    // Check for trade commands
+    const buyMatch = messageText.match(/buy\s+([\d.]+)\s*sol/i);
+    const sellMatch = messageText.match(/sell\s+([\d.]+|half|all)\s*(?:of\s+)?(?:my\s+)?(?:tokens?|holdings?)?/i);
+
+    if (buyMatch || sellMatch) {
+      if (!connected) {
+        setMessages(prev => [...prev, {
+          text: "Please connect your wallet first to execute trades.",
+          isUser: false
+        }]);
+        setShowModal(true);
+        return;
+      }
+
+      try {
+        if (buyMatch) {
+          const amount = parseFloat(buyMatch[1]);
+          await executeTrade('buy', amount.toString());
+        } else if (sellMatch) {
+          let percentage: number;
+          const amount = sellMatch[1].toLowerCase();
+          
+          if (amount === 'half') {
+            percentage = 50;
+          } else if (amount === 'all') {
+            percentage = 100;
+          } else {
+            percentage = parseFloat(amount);
+          }
+
+          if (isNaN(percentage) || percentage <= 0 || percentage > 100) {
+            throw new Error('Invalid sell percentage. Please specify a number between 1 and 100, or use "half" or "all".');
+          }
+
+          await executeTrade('sell', percentage);
+        }
+        return;
+      } catch (error) {
+        setMessages(prev => [...prev, {
+          text: `❌ Trade failed: ${error.message}`,
+          isUser: false
+        }]);
+        return;
+      }
+    }
+
+    // Regular chat flow for non-trade messages
     try {
       setIsLoading(true);
-      setMessages(prev => [...prev, { 
-        text: messageText, 
-        isUser: true,
-        image: chartImage || undefined 
-      }]);
-      
-      setMessages(prev => [...prev, { 
-        text: '', 
-        isUser: false,
-        isStreaming: true 
-      }]);
-
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
           tokenReport: report,
-          chartImage: chartImage,
-          messageHistory: messages,
-          personality: WEXLEY_PERSONALITY
-        }),
+          chartImage: chartImage
+        })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
+      if (!response.ok) throw new Error('Failed to get response');
+      
       const data = await response.json();
       
-      setMessages(prev => prev.map((msg, index) => {
-        if (index === prev.length - 1) {
-          return { text: data.response, isUser: false, isStreaming: false };
-        }
-        return msg;
-      }));
-      setChartImage(null);
+      setMessages(prev => [...prev, { 
+        text: data.response, 
+        isUser: false 
+      }]);
+
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => [...prev, { 
-        text: "Sorry, I couldn't process that request. Please try again.", 
-        isUser: false 
+      setMessages(prev => [...prev, {
+        text: 'Sorry, I encountered an error. Please try again.',
+        isUser: false
       }]);
     } finally {
       setIsLoading(false);

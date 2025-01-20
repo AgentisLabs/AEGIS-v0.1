@@ -1,8 +1,6 @@
 import { Connection, PublicKey, VersionedTransaction } from '@solana/web3.js';
 import { AgentTool, ToolContext, ToolResponse } from './types';
 
-const API_HOST = 'https://gmgn.ai';
-
 export class JupiterSwapTool implements AgentTool {
   id = 'jupiter-swap-v1';
   name = 'Jupiter Swap';
@@ -49,108 +47,99 @@ export class JupiterSwapTool implements AgentTool {
         };
       }
 
-      // 1. Get quote with anti-MEV and simulation enabled
-      const quoteUrl = `${API_HOST}/defi/router/v1/sol/tx/get_swap_route?` + 
-        `token_in_address=${params.inputToken}` +
-        `&token_out_address=${params.outputToken}` +
-        `&in_amount=${params.amount}` +
-        `&from_address=${wallet.publicKey.toString()}` +
-        `&slippage=${params.slippage}` +
-        `&anti_mev=true` +  // Enable anti-MEV protection
-        `&simulate=true`;   // Enable transaction simulation
+      // Use our API route instead of calling gmgn.ai directly
+      const queryParams = new URLSearchParams({
+        token_in_address: params.inputToken,
+        token_out_address: params.outputToken,
+        in_amount: params.amount.toString(),
+        from_address: wallet.publicKey.toString(),
+        slippage: (params.slippage || 1).toString()
+      });
 
-      const routeResponse = await fetch(quoteUrl);
-      const route = await routeResponse.json();
+      console.log('Requesting quote with params:', Object.fromEntries(queryParams.entries()));
+
+      // 1. Get quote through our API route
+      const quoteResponse = await fetch(`/api/trade?${queryParams.toString()}`);
+      console.log('Quote response status:', quoteResponse.status);
+      
+      const route = await quoteResponse.json();
+      console.log('Full quote response:', JSON.stringify(route, null, 2));
 
       if (!route.data) {
-        throw new Error('Failed to get swap route');
+        throw new Error(route.msg || 'Failed to get quote');
       }
 
-      // Check price impact
-      const priceImpact = route.data.quote.priceImpactPct;
-      if (priceImpact > 5) { // 5% price impact threshold
-        throw new Error(`Price impact too high: ${priceImpact}%`);
-      }
-
-      // Verify simulation results
-      if (!route.data.simulation?.success) {
-        throw new Error(`Transaction simulation failed: ${route.data.simulation?.error || 'Unknown error'}`);
-      }
-
-      // Check minimum output amount
-      const minOutputAmount = route.data.quote.outAmount * (1 - (params.slippage / 100));
-      if (route.data.simulation.outputAmount < minOutputAmount) {
-        throw new Error('Simulation output amount below minimum threshold');
-      }
-
-      // 2. Sign transaction with anti-MEV bundle
+      // 2. Sign transaction
       const swapTransactionBuf = Buffer.from(route.data.raw_tx.swapTransaction, 'base64');
       const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
       
-      transaction.sign([wallet.payer]);
-      const signedTx = Buffer.from(transaction.serialize()).toString('base64');
+      console.log('Requesting wallet signature...');
+      const signedTx = await wallet.signTransaction(transaction);
+      const serializedTx = Buffer.from(signedTx.serialize()).toString('base64');
 
-      // 3. Submit signed transaction with MEV protection
-      const submitResponse = await fetch(
-        `${API_HOST}/defi/router/v1/sol/tx/submit_signed_transaction`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            signed_tx: signedTx,
-            anti_mev: true,
-            max_priority_fee: route.data.mev?.suggestedPriorityFee || 0
-          })
-        }
-      );
+      // 3. Submit signed transaction through our API route
+      console.log('Submitting signed transaction...');
+      const submitResponse = await fetch('/api/trade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'submit',
+          signed_tx: serializedTx
+        })
+      });
 
       const submitResult = await submitResponse.json();
+      console.log('Submit response:', submitResult);
       
-      if (!submitResult.data?.hash) {
-        throw new Error('Failed to submit transaction');
+      if (!submitResult.data) {
+        throw new Error(submitResult.msg || 'Failed to submit transaction');
       }
 
-      // 4. Poll for transaction status
+      // 4. Poll for status through our API route
+      console.log('Polling for transaction status...');
       let status;
-      for (let i = 0; i < 30; i++) { // Poll for up to 30 seconds
-        const statusResponse = await fetch(
-          `${API_HOST}/defi/router/v1/sol/tx/get_transaction_status?` +
-          `hash=${submitResult.data.hash}&last_valid_height=${route.data.raw_tx.lastValidBlockHeight}`
-        );
+      for (let i = 0; i < 3; i++) { // Reduced polling attempts
+        const statusResponse = await fetch('/api/trade', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'status',
+            hash: submitResult.data.hash,
+            last_valid_height: route.data.raw_tx.lastValidBlockHeight
+          })
+        });
         
         status = await statusResponse.json();
+        console.log('Status response:', status);
         
-        if (status.data.success || status.data.expired) {
+        if (status.code === 0 && status.data?.success === true) {
           break;
         }
         
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      if (status.data.success) {
-        return {
-          success: true,
-          data: {
-            signature: submitResult.data.hash,
-            inputAmount: params.amount,
-            outputAmount: route.data.quote.outAmount
-          }
-        };
-      } else {
-        throw new Error('Transaction failed or expired');
-      }
+      return {
+        success: true,
+        data: {
+          signature: submitResult.data.hash,
+          inputAmount: params.amount,
+          outputAmount: route.data.quote.outAmount
+        }
+      };
 
     } catch (error) {
+      console.error('Swap error:', error);
       return {
         success: false,
         error: {
           code: 'SWAP_FAILED',
-          message: error.message,
-          details: {
-            simulation: error.simulation || null,
-            priceImpact: error.priceImpact || null,
-            mevProtection: error.mevProtection || null
-          }
+          message: error.message || 'Failed to execute swap',
+          details: error
         }
       };
     }

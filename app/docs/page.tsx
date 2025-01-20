@@ -42,7 +42,7 @@ export default function DocsPage() {
       <section className="mb-12">
         <h3 className="text-2xl font-semibold mb-4 text-gray-900">Overview</h3>
         <div className="space-y-4">
-          <p className="text-xl italic text-gray-800">"Like the offspring of Crypto Twitter and a Bloomberg Terminal"</p>
+          <p className="text-xl italic text-gray-800">&ldquo;Like the offspring of Crypto Twitter and a Bloomberg Terminal&rdquo;</p>
           <p className="text-gray-700">
             AEGIS, an AI-enabled gateway for Solana intelligence, aims to streamline the cryptocurrency research process. 
             By utilizing a team of specialized research agents and an execution agent (Wexley), AEGIS provides users with 
@@ -82,7 +82,7 @@ export default function DocsPage() {
           <div>
             <h4 className="text-xl font-medium mb-3 text-blue-600">Advanced Trading Capabilities</h4>
             <ul className="list-disc ml-6 text-gray-700 space-y-2">
-              <li>Natural language trade commands (e.g., "buy 1 sol", "sell half")</li>
+              <li>Natural language trade commands (e.g., &ldquo;buy 1 sol&rdquo;, &ldquo;sell half&rdquo;)</li>
               <li>GMGN integration for optimal execution</li>
               <li>Real-time price feeds</li>
               <li>Automated trade execution</li>
