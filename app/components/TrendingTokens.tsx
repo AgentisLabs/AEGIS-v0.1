@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { History, TrendingUp, ChevronRight } from 'lucide-react';
+import { History, TrendingUp, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { JupiterSwapTool } from '@/app/lib/tools/jupiter-swap';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 interface TrendingToken {
   address: string;
@@ -35,6 +37,9 @@ export default function TrendingTokens({ onAnalyze }: TrendingTokensProps) {
   const [tokens, setTokens] = useState<TrendingToken[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
+  const [buyingToken, setBuyingToken] = useState<string | null>(null);
+  const wallet = useWallet();
+  const jupiterSwap = new JupiterSwapTool();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,11 +62,39 @@ export default function TrendingTokens({ onAnalyze }: TrendingTokensProps) {
     onAnalyze(address);
   };
 
+  const handleQuickBuy = async (token: TrendingToken) => {
+    if (!wallet.connected) {
+      console.log('Please connect your wallet first');
+      return;
+    }
+
+    setBuyingToken(token.address);
+    try {
+      const response = await jupiterSwap.execute({
+        inputToken: 'So11111111111111111111111111111111111111112',
+        outputToken: token.address,
+        amount: 0.25 * 1e9,
+        slippage: 1
+      }, {
+        wallet: wallet as any
+      });
+
+      if (response.success) {
+        console.log('Swap successful:', response.data);
+      } else {
+        console.error('Swap failed:', response.error);
+      }
+    } catch (error) {
+      console.error('Error executing swap:', error);
+    } finally {
+      setBuyingToken(null);
+    }
+  };
+
   const sortedTokens = [...tokens].sort((a, b) => {
     if (sortBy === 'popular') {
       return b.search_count - a.search_count;
     }
-    // For recent, sort by last_searched timestamp
     return new Date(b.last_searched).getTime() - new Date(a.last_searched).getTime();
   });
 
@@ -165,6 +198,25 @@ export default function TrendingTokens({ onAnalyze }: TrendingTokensProps) {
                   ${formatNumber(token.marketData?.volume_24h || 0)}
                 </div>
               </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickBuy(token);
+                }}
+                disabled={buyingToken === token.address}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap",
+                  buyingToken === token.address
+                    ? "bg-gray-800/50 text-gray-400 cursor-not-allowed"
+                    : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                )}
+              >
+                {buyingToken === token.address ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  "Buy 0.25 SOL"
+                )}
+              </button>
               <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors" />
             </div>
           </div>
