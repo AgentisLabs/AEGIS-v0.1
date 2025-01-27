@@ -4,20 +4,12 @@ import { useState } from 'react';
 import Image from 'next/image';
 import SearchBar from './components/SearchBar';
 import ReportCard from './components/ReportCard';
-import Leaderboard from './components/Leaderboard';
 import { TokenAnalysis } from './types';
 import ChatBox from './components/ChatBox';
-import { BentoGrid, BentoGridItem } from './components/ui/bento-grid';
 import { motion } from 'framer-motion';
-import { 
-  IconGraph, 
-  IconBrain,
-  IconChartCandle,
-  IconCoin
-} from "@tabler/icons-react";
-import { BentoImage } from './components/ui/bento-image';
 import WalletConnect from './components/WalletConnect';
 import { cn } from '@/lib/utils';
+import TrendingTokens from './components/TrendingTokens';
 
 // Skeleton component with dot pattern and mask
 const Skeleton = () => (
@@ -33,10 +25,9 @@ export default function TokenAnalyzer() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentReport, setCurrentReport] = useState<TokenAnalysis | null>(null);
-  const [leaderboard, setLeaderboard] = useState<TokenAnalysis[]>([]);
-  const [searchMode, setSearchMode] = useState<'lite' | 'pro'>('lite');
   const [showProModal, setShowProModal] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [searchMode, setSearchMode] = useState<'lite' | 'pro'>('lite');
 
   const handleSearch = async (address: string) => {
     setIsLoading(true);
@@ -84,7 +75,7 @@ export default function TokenAnalyzer() {
       });
 
       if (!analysisResponse.ok) {
-        const errorData = await analysisResponse.text(); // Use text() instead of json()
+        const errorData = await analysisResponse.text();
         try {
           const parsedError = JSON.parse(errorData);
           throw new Error(parsedError.error || 'Failed to analyze token');
@@ -108,18 +99,6 @@ export default function TokenAnalyzer() {
         market_data: analysisData.data.market_data || prev?.market_data,
         loading: false 
       }));
-
-      // Update leaderboard if high score
-      if (analysisData.data.overall_score > 70) {
-        setLeaderboard(prev => {
-          const filtered = prev.filter(item => 
-            item.address.toLowerCase() !== address.toLowerCase()
-          );
-          return [...filtered, analysisData.data]
-            .sort((a, b) => b.overall_score - a.overall_score)
-            .slice(0, 10);
-        });
-      }
 
     } catch (err) {
       console.error('Search error:', err);
@@ -150,40 +129,9 @@ export default function TokenAnalyzer() {
     }
   };
 
-  const features = [
-    {
-      title: "Token Analysis Engine",
-      description: "AI-powered analysis of Solana tokens and their metrics.",
-      header: <BentoImage src="/images/box-1.png" alt="Token Analysis Engine" />,
-      className: "md:col-span-2",
-      icon: <IconGraph className="h-4 w-4 text-neutral-500" />,
-    },
-    {
-      title: "Natural Language Execution",
-      description: "Execute trades with natural language by talking to Wexley.",
-      header: <BentoImage src="/images/box-2.png" alt="Natural Language Trading" />,
-      className: "md:col-span-1",
-      icon: <IconBrain className="h-4 w-4 text-neutral-500" />,
-    },
-    {
-      title: "Market Intelligence",
-      description: "Real-time market data and sentiment analysis for informed decision making.",
-      header: <BentoImage src="/images/box-3.png" alt="Market Intelligence" />,
-      className: "md:col-span-1",
-      icon: <IconChartCandle className="h-4 w-4 text-neutral-500" />,
-    },
-    {
-      title: "Customizeable Analysis Flows (coming soon)",
-      description: "Create and deploy your own analysis workflow with customizable data sources and personalized trading strategies.",
-      header: <BentoImage src="/images/box-4.png" alt="Custom Trading Agents" />,
-      className: "md:col-span-2",
-      icon: <IconCoin className="h-4 w-4 text-neutral-500" />,
-    },
-  ];
-
   return (
     <main className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 to-black">
-      <div className="max-w-6xl mx-auto relative">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* WalletConnect in top left when no token analysis */}
         {!currentReport && (
           <div className="absolute top-0 left-4 md:left-8 z-50">
@@ -337,18 +285,7 @@ export default function TokenAnalyzer() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-16"
             >
-              <BentoGrid className="max-w-4xl mx-auto">
-                {features.map((item, i) => (
-                  <BentoGridItem
-                    key={i}
-                    title={item.title}
-                    description={item.description}
-                    header={item.header}
-                    className={item.className}
-                    icon={item.icon}
-                  />
-                ))}
-              </BentoGrid>
+              <TrendingTokens onAnalyze={handleSearch} />
             </motion.div>
           )}
 
